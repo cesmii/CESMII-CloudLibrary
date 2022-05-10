@@ -27,7 +27,7 @@
  * http://opcfoundation.org/License/MIT/1.00/
  * ======================================================================*/
 
-namespace UACloudLibrary.Models
+namespace Opc.Ua.Cloud.Library.Models
 {
     using Newtonsoft.Json;
 
@@ -48,6 +48,8 @@ namespace UACloudLibrary.Models
         [JsonProperty(PropertyName = "version")]
         public string Version { get; set; }
 
+        [JsonProperty(PropertyName = "validationStatus")]
+        public string ValidationStatus { get; set; }
         [JsonProperty(PropertyName = "nodesetCreationTime")]
         public System.DateTime? CreationTime { get; set; }
 

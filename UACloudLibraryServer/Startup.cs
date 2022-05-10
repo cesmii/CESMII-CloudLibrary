@@ -27,7 +27,7 @@
  * http://opcfoundation.org/License/MIT/1.00/
  * ======================================================================*/
 
-namespace UACloudLibrary
+namespace Opc.Ua.Cloud.Library
 {
     using System;
     using System.IO;
@@ -51,7 +51,7 @@ namespace UACloudLibrary
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
     using Microsoft.OpenApi.Models;
-    using UACloudLibrary.Interfaces;
+    using Opc.Ua.Cloud.Library.Interfaces;
 
     public class Startup
     {
@@ -75,7 +75,7 @@ namespace UACloudLibrary
             // Setup database context for ASP.NetCore Identity Scaffolding
             services.AddDbContext<AppDbContext>(o => {
                 o.UseNpgsql(PostgreSQLDB.CreateConnectionString(Configuration));
-            });
+            }, ServiceLifetime.Transient);
 
             services.AddDefaultIdentity<IdentityUser>(options =>
                     //require confirmation mail if sendgrid API Key is set
@@ -84,7 +84,7 @@ namespace UACloudLibrary
 
             services.AddScoped<IUserService, UserService>();
 
-            services.AddSingleton<IDatabase, PostgreSQLDB>();
+            services.AddScoped<IDatabase, PostgreSQLDB>();
 
             services.AddTransient<IEmailSender, EmailSender>();
 
@@ -207,6 +207,7 @@ namespace UACloudLibrary
                 .BindRuntimeType<UInt32, HotChocolate.Types.UnsignedIntType>()
                 .BindRuntimeType<UInt16, HotChocolate.Types.UnsignedShortType>()
                 ;
+            services.AddScoped<NodeSetModelStoreFactory>();
 #endif
             services.Configure<IISServerOptions>(options => {
                 options.AllowSynchronousIO = true;

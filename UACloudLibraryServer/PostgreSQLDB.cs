@@ -27,7 +27,7 @@
  * http://opcfoundation.org/License/MIT/1.00/
  * ======================================================================*/
 
-namespace UACloudLibrary
+namespace Opc.Ua.Cloud.Library
 {
     using System;
     using System.Collections.Generic;
@@ -36,7 +36,7 @@ namespace UACloudLibrary
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using Npgsql;
-    using UACloudLibrary.Models;
+    using Opc.Ua.Cloud.Library.Models;
 
     public class PostgreSQLDB : IDatabase, IDisposable
     {
@@ -457,6 +457,7 @@ namespace UACloudLibrary
                     thisResult.Contributor = RetrieveMetaData(matchId, "orgname") ?? string.Empty;
                     thisResult.License = RetrieveMetaData(matchId, "license") ?? string.Empty;
                     thisResult.Version = RetrieveMetaData(matchId, "version") ?? string.Empty;
+                    thisResult.ValidationStatus = RetrieveMetaData(matchId, "validationstatus") ?? string.Empty; ;
                     var pubDate = RetrieveMetaData(matchId, "nodesetcreationtime");
                     if (DateTime.TryParse(pubDate, out DateTime useDate))
                         thisResult.CreationTime = useDate;
