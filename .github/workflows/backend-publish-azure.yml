@@ -15,19 +15,19 @@
 #
 # For more information on GitHub Actions for Azure, refer to https://github.com/Azure/Actions
 # For more samples to get started with GitHub Action workflows to deploy to Azure, refer to https://github.com/Azure/actions-workflow-samples
-name: Stage|Backend|CloudLibrary - Deploy to Azure
+name: Prod|Backend|CloudLibrary - Deploy to Azure
 on:
   #manually trigger deploy
   workflow_dispatch:
   # Trigger the workflow on push,
-  # but only for the dev branch
-  push:
-    branches:
-      - cesmii/develop
+  # but only for the cesmii/main branch
+  #push:
+  #  branches:
+  #    - cesmii/main
 
 env:
   # set this to your application's name
-  AZURE_WEBAPP_NAME: 'cloudlib-back-stage'    
+  AZURE_WEBAPP_NAME: 'cloudlib-back'    
   # set this to the path to your solution file, defaults to the repository root (this is the folder in the git repo)
   SOLUTION_DIRECTORY: '.'      
   # set this to the path to your web app project, defaults to the repository root (this is the folder in the git repo)
@@ -76,7 +76,7 @@ jobs:
         uses: azure/webapps-deploy@v2
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          publish-profile: ${{ secrets.STAGE_AZURE_CLOUDLIB_BACK_PUBLISHSETTINGS }}
+          publish-profile: ${{ secrets.AZURE_CLOUDLIB_BACK_PUBLISHSETTINGS }}
           package: ${{ env.PROJECT_DIRECTORY }}${{ env.PUBLISH_FOLDER }}
       - name: 'Run Azure Functions Action'
         uses: Azure/functions-action@v1
@@ -84,4 +84,4 @@ jobs:
         with:
           app-name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
           package: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/output'
-          publish-profile: ${{ secrets.STAGE_AZURE_CLOUDLIB_SYNC_PUBLISHSETTINGS }}
+          publish-profile: ${{ secrets.AZURE_CLOUDLIB_SYNC_PUBLISHSETTINGS }}
