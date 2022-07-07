@@ -404,7 +404,9 @@ namespace Opc.Ua.Cloud.Library
                     thisResult.ValidationStatus = RetrieveMetaData(matchId, "validationstatus") ?? string.Empty; ;
                     var pubDate = RetrieveMetaData(matchId, "nodesetcreationtime");
                     if (DateTime.TryParse(pubDate, out DateTime useDate))
-                        thisResult.CreationTime = useDate;
+                    {
+                        thisResult.PublicationDate = useDate;
+                    }
 
                     var namespaceUri = GetNamespaceUriForNodeset(matchId);
                     thisResult.NameSpaceUri = namespaceUri;
@@ -473,7 +475,7 @@ namespace Opc.Ua.Cloud.Library
 
             try
             {
-                var namesAndIds = _dbContext.nodeSets.Select(nsm => new { nsm.ModelUri, nsm.Identifier }).ToList().Select(n => $"{n.ModelUri}, {n.Identifier}").ToArray();
+                var namesAndIds = _dbContext.nodeSets.Select(nsm => new { nsm.ModelUri, nsm.Identifier }).Select(n => $"{n.ModelUri},{n.Identifier}").ToArray();
                 return namesAndIds;
             }
             catch (Exception ex)
