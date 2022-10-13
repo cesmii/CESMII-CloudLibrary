@@ -298,7 +298,7 @@ namespace SampleConsoleClient
                 }
 
                 Console.WriteLine("\nTesting query and convertion of metadata");
-                List<UANameSpace> finalResult = await client.GetConvertedMetadataAsync().ConfigureAwait(false);
+                List<UANameSpace> finalResult = await client.GetConvertedMetadataAsync(0, 100).ConfigureAwait(false);
                 foreach (UANameSpace result in finalResult)
                 {
                     Console.WriteLine($"{result.Title} by {result.Contributor.Name}");
@@ -309,7 +309,7 @@ namespace SampleConsoleClient
                 Console.WriteLine(ex.Message);
             }
 
-            List<UANodesetResult> restResult = await client.GetBasicNodesetInformationAsync().ConfigureAwait(false);
+            List<UANodesetResult> restResult = await client.GetBasicNodesetInformationAsync(0, 100).ConfigureAwait(false);
             if (restResult?.Count > 0)
             {
 
@@ -322,7 +322,7 @@ namespace SampleConsoleClient
                     foreach (var nodeSet in nodeSets)
                     {
                         Console.WriteLine($"Dependencies for {nodeSet.Identifier} {nodeSet.NamespaceUri} {nodeSet.PublicationDate} ({nodeSet.Version}):");
-                        foreach (var requiredNodeSet in nodeSets[0].RequiredModels)
+                        foreach (var requiredNodeSet in nodeSet.RequiredModels)
                         {
                             Console.WriteLine($"Required: {requiredNodeSet.NamespaceUri} {requiredNodeSet.PublicationDate} ({requiredNodeSet.Version}). Available in Cloud Library: {requiredNodeSet.AvailableModel?.Identifier} {requiredNodeSet.AvailableModel?.PublicationDate} ({requiredNodeSet.AvailableModel?.Version})");
                         }

@@ -35,15 +35,15 @@ namespace Opc.Ua.Cloud.Library
     using System.Globalization;
     using System.Linq;
     using System.Text.RegularExpressions;
+    using HotChocolate.Types.Pagination.Extensions;
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
-    using Npgsql;
+    using Opc.Ua.Cloud.Library.DbContextModels;
     using Opc.Ua.Cloud.Library.Models;
 
-    public class PostgreSQLDB : IDatabase, IDisposable
+    public class PostgreSQLDB : IDatabase
     {
-        private NpgsqlConnection _connection = null;
         private readonly ILogger _logger;
         private readonly AppDbContext _dbContext;
 
@@ -68,67 +68,27 @@ namespace Opc.Ua.Cloud.Library
             string Port = "5432";
 
             // Build connection string using parameters from portal
-            return string.Format(
-                "Server={0};Username={1};Database={2};Port={3};Password={4};SSLMode=Prefer",
-                Host,
-                User,
-                DBname,
-                Port,
-                Password);
+            return $"Server={Host};Username={User};Database={DBname};Port={Port};Password={Password};SSLMode=Prefer";
         }
 
         public PostgreSQLDB(ILoggerFactory logger, IConfiguration configuration, AppDbContext dbContext)
         {
             _logger = logger.CreateLogger("PostgreSQLDB");
             _dbContext = dbContext;
-            // Setup the database tables
-            string[] dbInitCommands = {
-                "CREATE TABLE IF NOT EXISTS Metadata(Metadata_id serial PRIMARY KEY, Nodeset_id BIGINT, Metadata_Name TEXT, Metadata_Value TEXT)",
-            };
-
-            try
-            {
-                _connection = new NpgsqlConnection(CreateConnectionString(configuration));
-                _connection.Open();
-
-                foreach (string initCommand in dbInitCommands)
-                {
-                    NpgsqlCommand sqlCommand = new NpgsqlCommand(initCommand, _connection);
-                    sqlCommand.ExecuteNonQuery();
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex.Message);
-            }
         }
 
-        ~PostgreSQLDB()
-        {
-            if (_connection != null)
-            {
-                _connection.Close();
-                _connection = null;
-            }
-        }
 
         public bool AddMetaDataToNodeSet(uint nodesetId, string name, string value)
         {
             try
             {
-                if (_connection.State != ConnectionState.Open)
-                {
-                    _connection.Close();
-                    _connection.Open();
-                }
-
-                string sqlInsert = string.Format("INSERT INTO public.Metadata (Nodeset_id, metadata_name, metadata_value) VALUES(@nodesetid, @metadataname, @metadatavalue)");
-                NpgsqlCommand sqlCommand = new NpgsqlCommand(sqlInsert, _connection);
-                sqlCommand.Parameters.AddWithValue("nodesetid", (long)nodesetId);
-                sqlCommand.Parameters.AddWithValue("metadataname", name);
-                sqlCommand.Parameters.AddWithValue("metadatavalue", value);
-                sqlCommand.ExecuteNonQuery();
-
+                var metaData = new MetadataModel {
+                    NodesetId = nodesetId,
+                    Name = name,
+                    Value = value,
+                };
+                _dbContext.Metadata.Add(metaData);
+                _dbContext.SaveChanges();
                 return true;
             }
             catch (Exception ex)
@@ -143,19 +103,13 @@ namespace Opc.Ua.Cloud.Library
         {
             try
             {
-                if (_connection.State != ConnectionState.Open)
+                var metaData = _dbContext.Metadata.FirstOrDefault(md => md.NodesetId == nodesetId && md.Name == name);
+                if (metaData == null)
                 {
-                    _connection.Close();
-                    _connection.Open();
+                    return false;
                 }
-
-                string sqlInsert = string.Format("UPDATE public.Metadata SET metadata_value=@metadatavalue WHERE Nodeset_id=@nodesetid AND metadata_name=@metadataname");
-                NpgsqlCommand sqlCommand = new NpgsqlCommand(sqlInsert, _connection);
-                sqlCommand.Parameters.AddWithValue("nodesetid", (long)nodesetId);
-                sqlCommand.Parameters.AddWithValue("metadataname", name);
-                sqlCommand.Parameters.AddWithValue("metadatavalue", value);
-                sqlCommand.ExecuteNonQuery();
-
+                metaData.Value = value;
+                _dbContext.SaveChanges();
                 return true;
             }
             catch (Exception ex)
@@ -168,39 +122,100 @@ namespace Opc.Ua.Cloud.Library
 
         public bool DeleteAllRecordsForNodeset(uint nodesetId)
         {
-            if (!DeleteAllTableRecordsForNodeset(nodesetId, "Metadata"))
+            try
             {
-                return false;
+                var recordIds = _dbContext.Metadata.Where(md => md.NodesetId == nodesetId).Select(md => md.Id);
+                foreach (var id in recordIds)
+                {
+                    var mdToDelete = new MetadataModel { Id = id };
+                    _dbContext.Entry(mdToDelete).State = EntityState.Deleted;
+                }
+                _dbContext.SaveChanges();
+                return true;
             }
-
-            return true;
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.Message);
+            }
+            return false;
         }
 
+        public UANameSpace RetrieveAllMetadata(uint nodesetId)
+        {
+            UANameSpace nameSpace = new();
+            RetrieveAllMetadata(nodesetId, nameSpace);
+            return nameSpace;
+        }
         public void RetrieveAllMetadata(uint nodesetId, UANameSpace nameSpace)
         {
-            if (DateTime.TryParse(RetrieveMetaData(nodesetId, "nodesetcreationtime"), out DateTime parsedDateTime))
+            try
+            {
+                var allMetaData = _dbContext.Metadata.Where(md => md.NodesetId == nodesetId).ToList();
+                var model = GetNamespaceUriForNodeset(nodesetId);
+                ConvertNodeSetMetadata(nodesetId, allMetaData, model, nameSpace);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.Message);
+            }
+        }
+        private static void ConvertNodeSetMetadata(uint nodesetId, List<MetadataModel> metaDataList, CloudLibNodeSetModel model, UANameSpace nameSpace)
+        {
+            var allMetaData = metaDataList.ToDictionary(md => md.Name, md => md.Value);
+
+            nameSpace.Nodeset.Identifier = nodesetId;
+
+            if (DateTime.TryParse(allMetaData.GetValueOrDefault("nodesetcreationtime"), out DateTime parsedDateTime))
             {
                 nameSpace.Nodeset.PublicationDate = parsedDateTime;
             }
 
-            if (DateTime.TryParse(RetrieveMetaData(nodesetId, "nodesetmodifiedtime"), out parsedDateTime))
+            if (DateTime.TryParse(allMetaData.GetValueOrDefault("nodesetmodifiedtime"), out parsedDateTime))
             {
                 nameSpace.Nodeset.LastModifiedDate = parsedDateTime;
             }
 
-            nameSpace.Title = RetrieveMetaData(nodesetId, "nodesettitle");
+            nameSpace.Title = allMetaData.GetValueOrDefault("nodesettitle", string.Empty);
 
-            nameSpace.Nodeset.Version = RetrieveMetaData(nodesetId, "version");
+            nameSpace.Nodeset.Version = allMetaData.GetValueOrDefault("version", string.Empty);
 
             nameSpace.Nodeset.Identifier = nodesetId;
 
-            string uri = GetNamespaceUriForNodeset(nodesetId);
-            if (!string.IsNullOrEmpty(uri))
+            if (!string.IsNullOrEmpty(model?.ModelUri))
             {
-                nameSpace.Nodeset.NamespaceUri = new Uri(uri);
+                nameSpace.Nodeset.NamespaceUri = new Uri(model.ModelUri);
+            }
+            nameSpace.Nodeset.ValidationStatus = model?.ValidationStatus.ToString();
+            if (model?.RequiredModels != null)
+            {
+                nameSpace.Nodeset.RequiredModels = model?.RequiredModels.Select(rm => {
+                    Nodeset availableModel = null;
+                    if (rm.AvailableModel != null)
+                    {
+                        uint? identifier = null;
+                        if (uint.TryParse(rm.AvailableModel?.Identifier, out var identifierParsed))
+                        {
+                            identifier = identifierParsed;
+                        }
+                        availableModel = new Nodeset {
+                            NamespaceUri = new Uri(rm.AvailableModel.ModelUri),
+                            PublicationDate = rm.AvailableModel.PublicationDate ?? default,
+                            Version = rm.AvailableModel.Version,
+                            Identifier = identifier ?? 0,
+                        };
+                    }
+                    var rn = new CloudLibRequiredModelInfo {
+                        NamespaceUri = rm.ModelUri,
+                        PublicationDate = rm.PublicationDate ?? DateTime.MinValue,
+                        Version = rm.Version,
+                        AvailableModel = availableModel,
+                    };
+                    return rn;
+                }
+                ).ToList();
             }
 
-            switch (RetrieveMetaData(nodesetId, "license"))
+            switch (allMetaData.GetValueOrDefault("license"))
             {
                 case "MIT":
                     nameSpace.License = License.MIT;
@@ -216,110 +231,114 @@ namespace Opc.Ua.Cloud.Library
                     break;
             }
 
-            nameSpace.CopyrightText = RetrieveMetaData(nodesetId, "copyright");
+            nameSpace.CopyrightText = allMetaData.GetValueOrDefault("copyright", string.Empty);
 
-            nameSpace.Description = RetrieveMetaData(nodesetId, "description");
+            nameSpace.Description = allMetaData.GetValueOrDefault("description", string.Empty);
 
-            nameSpace.Category.Name = RetrieveMetaData(nodesetId, "addressspacename");
+            nameSpace.Category.Name = allMetaData.GetValueOrDefault("addressspacename", string.Empty);
 
-            nameSpace.Category.Description = RetrieveMetaData(nodesetId, "addressspacedescription");
+            nameSpace.Category.Description = allMetaData.GetValueOrDefault("addressspacedescription", string.Empty);
 
-            uri = RetrieveMetaData(nodesetId, "addressspaceiconurl");
+            var uri = allMetaData.GetValueOrDefault("addressspaceiconurl");
             if (!string.IsNullOrEmpty(uri))
             {
                 nameSpace.Category.IconUrl = new Uri(uri);
             }
 
-            uri = RetrieveMetaData(nodesetId, "documentationurl");
+            uri = allMetaData.GetValueOrDefault("documentationurl");
             if (!string.IsNullOrEmpty(uri))
             {
                 nameSpace.DocumentationUrl = new Uri(uri);
             }
 
-            uri = RetrieveMetaData(nodesetId, "iconurl");
+            uri = allMetaData.GetValueOrDefault("iconurl");
             if (!string.IsNullOrEmpty(uri))
             {
                 nameSpace.IconUrl = new Uri(uri);
             }
 
-            uri = RetrieveMetaData(nodesetId, "licenseurl");
+            uri = allMetaData.GetValueOrDefault("licenseurl");
             if (!string.IsNullOrEmpty(uri))
             {
                 nameSpace.LicenseUrl = new Uri(uri);
             }
 
-            uri = RetrieveMetaData(nodesetId, "purchasinginfo");
+            uri = allMetaData.GetValueOrDefault("purchasinginfo");
             if (!string.IsNullOrEmpty(uri))
             {
                 nameSpace.PurchasingInformationUrl = new Uri(uri);
             }
 
-            uri = RetrieveMetaData(nodesetId, "releasenotes");
+            uri = allMetaData.GetValueOrDefault("releasenotes");
             if (!string.IsNullOrEmpty(uri))
             {
                 nameSpace.ReleaseNotesUrl = new Uri(uri);
             }
 
-            uri = RetrieveMetaData(nodesetId, "testspecification");
+            uri = allMetaData.GetValueOrDefault("testspecification");
             if (!string.IsNullOrEmpty(uri))
             {
                 nameSpace.TestSpecificationUrl = new Uri(uri);
             }
 
-            string keywords = RetrieveMetaData(nodesetId, "keywords");
+            string keywords = allMetaData.GetValueOrDefault("keywords");
             if (!string.IsNullOrEmpty(keywords))
             {
                 nameSpace.Keywords = keywords.Split(',');
             }
 
-            string locales = RetrieveMetaData(nodesetId, "locales");
+            string locales = allMetaData.GetValueOrDefault("locales");
             if (!string.IsNullOrEmpty(locales))
             {
                 nameSpace.SupportedLocales = locales.Split(',');
             }
 
-            nameSpace.Contributor.Name = RetrieveMetaData(nodesetId, "orgname");
+            nameSpace.Contributor.Name = allMetaData.GetValueOrDefault("orgname", string.Empty);
 
-            nameSpace.Contributor.Description = RetrieveMetaData(nodesetId, "orgdescription");
+            nameSpace.Contributor.Description = allMetaData.GetValueOrDefault("orgdescription", string.Empty);
 
-            uri = RetrieveMetaData(nodesetId, "orglogo");
+            uri = allMetaData.GetValueOrDefault("orglogo");
             if (!string.IsNullOrEmpty(uri))
             {
                 nameSpace.Contributor.LogoUrl = new Uri(uri);
             }
 
-            nameSpace.Contributor.ContactEmail = RetrieveMetaData(nodesetId, "orgcontact");
+            nameSpace.Contributor.ContactEmail = allMetaData.GetValueOrDefault("orgcontact", string.Empty);
 
-            uri = RetrieveMetaData(nodesetId, "orgwebsite");
+            uri = allMetaData.GetValueOrDefault("orgwebsite");
             if (!string.IsNullOrEmpty(uri))
             {
                 nameSpace.Contributor.Website = new Uri(uri);
             }
 
-            nameSpace.ValidationStatus = RetrieveMetaData(nodesetId, "validationstatus");
+            nameSpace.ValidationStatus = allMetaData.GetValueOrDefault("validationstatus", string.Empty);
 
-            if (uint.TryParse(RetrieveMetaData(nodesetId, "numdownloads"), out uint parsedDownloads))
+            if (uint.TryParse(allMetaData.GetValueOrDefault("numdownloads"), out uint parsedDownloads))
             {
                 nameSpace.NumberOfDownloads = parsedDownloads;
             }
+
+            var additionalProperties = allMetaData.Where(kv => !_knownProperties.Contains(kv.Key)).ToList();
+            if (additionalProperties.Any())
+            {
+                nameSpace.AdditionalProperties = additionalProperties.Select(p => new UAProperty { Name = p.Key, Value = p.Value }).OrderBy(p => p.Name).ToArray();
+            }
         }
+
+        static readonly string[] _knownProperties = new string[] {
+            "addressspacedescription", "addressspaceiconurl", "addressspacename", "copyright", "description", "documentationurl", "iconurl",
+            "keywords", "license", "licenseurl", "locales", "nodesetcreationtime", "nodesetmodifiedtime", "nodesettitle", "numdownloads",
+            "orgcontact", "orgdescription", "orglogo", "orgname", "orgwebsite", "purchasinginfo", "releasenotes", "testspecification", "validationstatus", "version",
+            };
 
         public string RetrieveMetaData(uint nodesetId, string metaDataTag)
         {
             try
             {
-                if (_connection.State != ConnectionState.Open)
+                var value = _dbContext.Metadata.Where(md => md.NodesetId == nodesetId)?.Select(md => md.Value)?.FirstOrDefault();
+                if (value != null)
                 {
-                    _connection.Close();
-                    _connection.Open();
-                }
-
-                string sqlSelect = string.Format("SELECT metadata_value FROM public.Metadata WHERE (Nodeset_id='{0}' AND Metadata_Name='{1}')", (long)nodesetId, metaDataTag);
-                NpgsqlCommand sqlCommand = new NpgsqlCommand(sqlSelect, _connection);
-                object result = sqlCommand.ExecuteScalar();
-                if (result != null)
-                {
-                    return result.ToString();
+                    return value;
                 }
             }
             catch (Exception ex)
@@ -330,149 +349,105 @@ namespace Opc.Ua.Cloud.Library
             return string.Empty;
         }
 
-        private bool DeleteAllTableRecordsForNodeset(uint nodesetId, string tableName)
+        public IQueryable<CloudLibNodeSetModel> SearchNodesets(string[] keywords)
         {
-            try
+            IQueryable<CloudLibNodeSetModel> matchingNodeSets;
+
+            if (keywords != null && keywords[0] != "*")
             {
-                if (_connection.State != ConnectionState.Open)
-                {
-                    _connection.Close();
-                    _connection.Open();
-                }
+                string keywordRegex = $".*({string.Join('|', keywords)}).*";
 
-                string sqlDelete = string.Format("DELETE FROM public.{1} WHERE Nodeset_id='{0}'", (long)nodesetId, tableName);
-                NpgsqlCommand sqlCommand = new NpgsqlCommand(sqlDelete, _connection);
-                sqlCommand.ExecuteNonQuery();
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex.Message);
-            }
-
-            return false;
-        }
-
-        public UANodesetResult[] FindNodesets(string[] keywords)
-        {
-            List<string> matches = new List<string>();
-            List<UANodesetResult> nodesetResults = new List<UANodesetResult>();
-
-            if (!(keywords?[0] == "*"))
-            {
-                foreach (var keyword in keywords)
-                {
-                    var matchesForKeyword = _dbContext.nodeModels
-                        .Where(nm => Regex.IsMatch(nm.DisplayName.FirstOrDefault().Text, keyword))
-                        .Select(nm => nm.NodeSet.Identifier)
-                        .Distinct()
-                        .ToList();
-                    foreach (var match in matchesForKeyword)
-                    {
-                        if (!matches.Contains(match))
-                        {
-                            matches.Add(match);
-                        }
-                    };
-                };
+                matchingNodeSets =
+                    _dbContext.nodeSets
+                    .Where(nsm =>
+                        nsm.ObjectTypes.Any(nm => Regex.IsMatch(nm.DisplayName.FirstOrDefault().Text, keywordRegex, RegexOptions.IgnoreCase))
+                        || nsm.Objects.Any(nm => Regex.IsMatch(nm.DisplayName.FirstOrDefault().Text, keywordRegex, RegexOptions.IgnoreCase))
+                        || nsm.VariableTypes.Any(nm => Regex.IsMatch(nm.DisplayName.FirstOrDefault().Text, keywordRegex, RegexOptions.IgnoreCase))
+                        || nsm.Properties.Any(nm => Regex.IsMatch(nm.DisplayName.FirstOrDefault().Text, keywordRegex, RegexOptions.IgnoreCase))
+                        || nsm.DataVariables.Any(nm => Regex.IsMatch(nm.DisplayName.FirstOrDefault().Text, keywordRegex, RegexOptions.IgnoreCase))
+                        || nsm.DataTypes.Any(nm => Regex.IsMatch(nm.DisplayName.FirstOrDefault().Text, keywordRegex, RegexOptions.IgnoreCase))
+                        || nsm.ReferenceTypes.Any(nm => Regex.IsMatch(nm.DisplayName.FirstOrDefault().Text, keywordRegex, RegexOptions.IgnoreCase))
+                        || nsm.Interfaces.Any(nm => Regex.IsMatch(nm.DisplayName.FirstOrDefault().Text, keywordRegex, RegexOptions.IgnoreCase))
+                        || nsm.UnknownNodes.Any(nm => Regex.IsMatch(nm.DisplayName.FirstOrDefault().Text, keywordRegex, RegexOptions.IgnoreCase))
+                        || _dbContext.Metadata.Any(md => md.NodesetId.ToString() == nsm.Identifier && Regex.IsMatch(md.Value, keywordRegex, RegexOptions.IgnoreCase))
+                        );
             }
             else
             {
-                matches = _dbContext.nodeSets.Select(nsm => nsm.Identifier).Distinct().ToList();
+                matchingNodeSets = _dbContext.nodeSets.AsQueryable();
             }
+            return matchingNodeSets;
+        }
 
-            foreach (string result in FindNodesetsInTable(keywords, "Metadata"))
-            {
-                if (!matches.Contains(result))
+        public UANodesetResult[] FindNodesets(string[] keywords, int? offset, int? limit)
+        {
+            List<UANodesetResult> nodesetResults = new List<UANodesetResult>();
+
+            var nodeSets = SearchNodesets(keywords)
+                .OrderBy(n => n.ModelUri)
+                .Skip(offset ?? 0)
+                .Take(limit ?? 100)
+                .ToList();
+
+            var matchesLong = nodeSets.Select(n => long.Parse(n.Identifier, CultureInfo.InvariantCulture)).ToList();
+            var metaDataForMatches = _dbContext.Metadata.Where(md => matchesLong.Contains(md.NodesetId)).ToList();
+
+            Dictionary<long, List<MetadataModel>> metaDataForMatchesByNodeSetId = new();
+            metaDataForMatches.ForEach(md => {
+                if (!metaDataForMatchesByNodeSetId.TryGetValue(md.NodesetId, out var mdList))
                 {
-                    matches.Add(result);
+                    mdList = new();
+                    metaDataForMatchesByNodeSetId[md.NodesetId] = mdList;
                 }
-            }
+                mdList.Add(md);
+            });
 
             //Get additional metadata (if present and valid) for each match
-            foreach (string match in matches)
+            foreach (var nodeSet in nodeSets)
             {
-                if (uint.TryParse(match, out uint matchId))
-                {
-                    var thisResult = new UANodesetResult();
-                    thisResult.Id = matchId;
-                    thisResult.Title = RetrieveMetaData(matchId, "nodesettitle") ?? string.Empty;
-                    thisResult.Contributor = RetrieveMetaData(matchId, "orgname") ?? string.Empty;
-                    thisResult.License = RetrieveMetaData(matchId, "license") ?? string.Empty;
-                    thisResult.Version = RetrieveMetaData(matchId, "version") ?? string.Empty;
-                    thisResult.ValidationStatus = RetrieveMetaData(matchId, "validationstatus") ?? string.Empty; ;
-                    var pubDate = RetrieveMetaData(matchId, "nodesetcreationtime");
-                    if (DateTime.TryParse(pubDate, out DateTime useDate))
-                    {
-                        thisResult.PublicationDate = useDate;
-                    }
+                UANameSpace nameSpace = new UANameSpace();
 
-                    var namespaceUri = GetNamespaceUriForNodeset(matchId);
-                    thisResult.NameSpaceUri = namespaceUri;
+                var idStr = /*nodeSetAndMd.N*/nodeSet.Identifier;
+                var id = uint.Parse(idStr, CultureInfo.InvariantCulture);
+                ConvertNodeSetMetadata(id,
+                    metaDataForMatchesByNodeSetId[id],
+                    nodeSet,
+                    nameSpace);
 
-                    nodesetResults.Add(thisResult);
-                }
+                var thisResult = new UANodesetResult {
+                    Id = id,
+                    Title = nameSpace.Title,
+                    Contributor = nameSpace.Contributor.Name,
+                    License = nameSpace.License.ToString(),
+                    Version = nameSpace.Nodeset.Version,
+                    ValidationStatus = nameSpace.ValidationStatus,
+                    PublicationDate = nameSpace.Nodeset.PublicationDate,
+                    NameSpaceUri = nameSpace.Nodeset.NamespaceUri?.ToString(),
+                    RequiredNodesets = nameSpace.Nodeset.RequiredModels,
+
+                    CopyrightText = nameSpace.CopyrightText,
+                    Description = nameSpace.Description,
+                    Category = nameSpace.Category,
+                    DocumentationUrl = nameSpace.DocumentationUrl,
+                    IconUrl = nameSpace.IconUrl,
+                    LicenseUrl = nameSpace.LicenseUrl,
+                    Keywords = nameSpace.Keywords,
+                    PurchasingInformationUrl = nameSpace.PurchasingInformationUrl,
+                    ReleaseNotesUrl = nameSpace.ReleaseNotesUrl,
+                    TestSpecificationUrl = nameSpace.TestSpecificationUrl,
+                    SupportedLocales = nameSpace.SupportedLocales,
+                    NumberOfDownloads = nameSpace.NumberOfDownloads,
+                    AdditionalProperties = nameSpace.AdditionalProperties,
+                };
+
+                nodesetResults.Add(thisResult);
             }
             return nodesetResults.ToArray();
         }
 
-        private string[] FindNodesetsInTable(string[] keywords, string tableName)
-        {
-            List<string> results = new List<string>();
-
-            try
-            {
-                foreach (string keyword in keywords)
-                {
-                    // special case: * is a wildecard and will return everything
-                    string sqlSelect;
-                    if (keyword == "*")
-                    {
-                        sqlSelect = string.Format("SELECT DISTINCT Nodeset_id FROM public.{0}", tableName);
-                    }
-                    else
-                    {
-                        sqlSelect = string.Format("SELECT DISTINCT Nodeset_id FROM public.{0} WHERE LOWER({0}_value) ~ '{1}'", tableName, keyword.ToLower(CultureInfo.InvariantCulture));
-                    }
-
-                    if (_connection.State != ConnectionState.Open)
-                    {
-                        _connection.Close();
-                        _connection.Open();
-                    }
-
-                    NpgsqlCommand sqlCommand = new NpgsqlCommand(sqlSelect, _connection);
-                    using (NpgsqlDataReader reader = sqlCommand.ExecuteReader())
-                    {
-                        if (reader.HasRows)
-                        {
-                            while (reader.Read())
-                            {
-                                string result = reader.GetInt64(0).ToString(CultureInfo.InvariantCulture);
-                                if (!results.Contains(result))
-                                {
-                                    results.Add(result);
-                                }
-                            }
-                        }
-                    }
-                }
-
-                return results.ToArray();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex.Message);
-            }
-
-            return Array.Empty<string>();
-        }
 
         public string[] GetAllNamespacesAndNodesets()
         {
-            List<string> results = new List<string>();
-
             try
             {
                 var namesAndIds = _dbContext.nodeSets.Select(nsm => new { nsm.ModelUri, nsm.Identifier }).Select(n => $"{n.ModelUri},{n.Identifier}").ToArray();
@@ -486,49 +461,28 @@ namespace Opc.Ua.Cloud.Library
             return Array.Empty<string>();
         }
 
-        public string GetNamespaceUriForNodeset(uint nodesetId)
+        private CloudLibNodeSetModel GetNamespaceUriForNodeset(uint nodesetId)
         {
             try
             {
                 var identifier = nodesetId.ToString(CultureInfo.InvariantCulture);
-                var modelUri = _dbContext.nodeSets.Where(nsm => nsm.Identifier == identifier).Select(nsm => nsm.ModelUri).FirstOrDefault();
-                return modelUri;
+                var model = _dbContext.nodeSets.FirstOrDefault(nsm => nsm.Identifier == identifier);
+                return model;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex.Message);
             }
 
-            return string.Empty;
+            return null;
         }
 
         public string[] GetAllNamesAndNodesets()
         {
-            List<string> results = new List<string>();
-
             try
             {
-                string sqlSelect = "SELECT metadata_value, nodeset_id FROM public.metadata WHERE metadata_name = 'addressspacename'";
-
-                if (_connection.State != ConnectionState.Open)
-                {
-                    _connection.Close();
-                    _connection.Open();
-                }
-
-                NpgsqlCommand sqlCommand = new NpgsqlCommand(sqlSelect, _connection);
-                using (NpgsqlDataReader reader = sqlCommand.ExecuteReader())
-                {
-                    if (reader.HasRows)
-                    {
-                        while (reader.Read())
-                        {
-                            results.Add(reader.GetString(0) + "," + reader.GetInt64(1).ToString(CultureInfo.InvariantCulture));
-                        }
-                    }
-                }
-
-                return results.ToArray();
+                var nameSpaceUriAndId = _dbContext.Metadata.Where(md => md.Name == "addressspacename").Select(md => new { NamespaceUri = md.Value, md.NodesetId }).ToList();
+                return nameSpaceUriAndId.Select(ni => $"{ni.NamespaceUri},{ni.NodesetId}").ToArray();
             }
             catch (Exception ex)
             {
@@ -538,14 +492,5 @@ namespace Opc.Ua.Cloud.Library
             return Array.Empty<string>();
         }
 
-        public void Dispose()
-        {
-            if (_connection.State != ConnectionState.Open)
-            {
-                _connection.Close();
-            }
-
-            _connection.Dispose();
-        }
     }
 }

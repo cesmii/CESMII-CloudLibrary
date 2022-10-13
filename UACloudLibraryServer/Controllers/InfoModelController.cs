@@ -57,7 +57,7 @@ namespace Opc.Ua.Cloud.Library
         private readonly NodeSetModelIndexer _indexer;
         private readonly NodeSetModelIndexerFactory _nodeSetIndexerFactory;
 
-        public InfoModelController(IFileStorage storage, IDatabase database, ILoggerFactory logger, NodeSetModelIndexer indexer, NodeSetModelIndexerFactory nodeSetIndexerFactory, AppDbContext dbContext)
+        public InfoModelController(IFileStorage storage, IDatabase database, ILoggerFactory logger, NodeSetModelIndexer indexer, NodeSetModelIndexerFactory nodeSetIndexerFactory)
         {
             _storage = storage;
             _database = database;
@@ -70,9 +70,12 @@ namespace Opc.Ua.Cloud.Library
         [Route("/infomodel/find")]
         [SwaggerResponse(statusCode: 200, type: typeof(UANodesetResult[]), description: "Discovered OPC UA Information Model results of the models found in the UA Cloud Library matching the keywords provided.")]
         public IActionResult FindNameSpaceAsync(
-            [FromQuery][SwaggerParameter("A list of keywords to search for in the information models. Specify * to return everything.")] string[] keywords)
+            [FromQuery][SwaggerParameter("A list of keywords to search for in the information models. Specify * to return everything.")] string[] keywords,
+            [FromQuery][SwaggerParameter("Pagination offset")] int? offset,
+            [FromQuery][SwaggerParameter("Pagination limit")] int? limit
+            )
         {
-            UANodesetResult[] results = _database.FindNodesets(keywords);
+            UANodesetResult[] results = _database.FindNodesets(keywords, offset, limit);
             return new ObjectResult(results) { StatusCode = (int)HttpStatusCode.OK };
         }
 
@@ -100,16 +103,20 @@ namespace Opc.Ua.Cloud.Library
         [SwaggerResponse(statusCode: 400, type: typeof(string), description: "The identifier provided could not be parsed.")]
         [SwaggerResponse(statusCode: 404, type: typeof(string), description: "The identifier provided could not be found.")]
         public async Task<IActionResult> DownloadNameSpaceAsync(
-            [FromRoute][Required][SwaggerParameter("OPC UA Information model identifier.")] string identifier)
+            [FromRoute][Required][SwaggerParameter("OPC UA Information model identifier.")] string identifier,
+            [FromQuery][SwaggerParameter("Download NodeSet XML only, omitting metadata")] bool nodesetXMLOnly = false,
+            [FromQuery][SwaggerParameter("Download metadata only, omitting NodeSet XML")] bool metadataOnly = false
+            )
         {
             UANameSpace result = new UANameSpace();
-
-            result.Nodeset.NodesetXml = await _storage.DownloadFileAsync(identifier).ConfigureAwait(false);
-            if (string.IsNullOrEmpty(result.Nodeset.NodesetXml))
+            if (!metadataOnly)
             {
-                return new ObjectResult("Failed to find nodeset") { StatusCode = (int)HttpStatusCode.NotFound };
+                result.Nodeset.NodesetXml = await _storage.DownloadFileAsync(identifier).ConfigureAwait(false);
+                if (string.IsNullOrEmpty(result.Nodeset.NodesetXml))
+                {
+                    return new ObjectResult("Failed to find nodeset") { StatusCode = (int)HttpStatusCode.NotFound };
+                }
             }
-
             uint nodeSetID = 0;
             if (!uint.TryParse(identifier, out nodeSetID))
             {
@@ -119,7 +126,10 @@ namespace Opc.Ua.Cloud.Library
             _database.RetrieveAllMetadata(nodeSetID, result);
 
             IncreaseNumDownloads(nodeSetID);
-
+            if (nodesetXMLOnly)
+            {
+                return new ObjectResult(result.Nodeset.NodesetXml) { StatusCode = (int)HttpStatusCode.OK };
+            }
             return new ObjectResult(result) { StatusCode = (int)HttpStatusCode.OK };
         }
 
@@ -229,6 +239,19 @@ namespace Opc.Ua.Cloud.Library
                 if (!string.IsNullOrEmpty(result) && !string.IsNullOrEmpty(contributorName) && (!string.Equals(nameSpace.Contributor.Name, contributorName, StringComparison.Ordinal)))
                 {
                     return new ObjectResult("Contributor name of existing nodeset is different to the one provided.") { StatusCode = (int)HttpStatusCode.Conflict };
+                }
+
+                if (nameSpace.Nodeset.PublicationDate != nodeSet.Models[0].PublicationDate)
+                {
+                    return new ObjectResult("PublicationDate in metadata does not match nodeset XML.") { StatusCode = (int)HttpStatusCode.BadRequest };
+                }
+                if (nameSpace.Nodeset.Version != nodeSet.Models[0].Version)
+                {
+                    return new ObjectResult("Version in metadata does not match nodeset XML.") { StatusCode = (int)HttpStatusCode.BadRequest };
+                }
+                if (nameSpace.Nodeset.NamespaceUri != null && nameSpace.Nodeset.NamespaceUri.ToString() != nodeSet.Models[0].ModelUri)
+                {
+                    return new ObjectResult("NamespaceUri in metadata does not match nodeset XML.") { StatusCode = (int)HttpStatusCode.BadRequest };
                 }
 
                 // upload the new file to the storage service, and get the file handle that the storage service returned

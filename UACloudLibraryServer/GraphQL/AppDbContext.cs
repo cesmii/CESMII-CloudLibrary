@@ -31,6 +31,7 @@ namespace Opc.Ua.Cloud.Library
 {
     using System.IO;
     using CESMII.OpcUa.NodeSetModel;
+    using CESMII.OpcUa.NodeSetModel.EF;
     using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Configuration;
@@ -73,7 +74,8 @@ namespace Opc.Ua.Cloud.Library
                        .Build();
                 }
                 string connectionString = PostgreSQLDB.CreateConnectionString(configuration);
-                optionsBuilder.UseNpgsql(connectionString);
+                optionsBuilder.UseNpgsql(connectionString,
+                    o => o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery));
             }
         }
 
@@ -90,6 +92,7 @@ namespace Opc.Ua.Cloud.Library
 
             NodeSetModelContext.CreateModel(builder);
             builder.Entity<CloudLibNodeSetModel>()
+                .Ignore(nm => nm.Metadata)
                 .Property(nsm => nsm.ValidationStatus)
                     .HasConversion<string>();
 
