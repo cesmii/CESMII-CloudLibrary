@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -417,8 +417,7 @@ namespace Opc.Ua.Cloud.Library
 
             migrationBuilder.CreateTable(
                 name: "DataVariableModelNodeModel",
-                columns: table => new
-                {
+                columns: table => new {
                     DataVariablesNodeId = table.Column<string>(type: "text", nullable: false),
                     DataVariablesNodeSetModelUri = table.Column<string>(type: "text", nullable: false),
                     DataVariablesNodeSetPublicationDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
@@ -426,8 +425,7 @@ namespace Opc.Ua.Cloud.Library
                     NodesWithDataVariablesNodeSetModelUri = table.Column<string>(type: "text", nullable: false),
                     NodesWithDataVariablesNodeSetPublicationDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
-                constraints: table =>
-                {
+                constraints: table => {
                     table.PrimaryKey("PK_DataVariableModelNodeModel", x => new { x.DataVariablesNodeId, x.DataVariablesNodeSetModelUri, x.DataVariablesNodeSetPublicationDate, x.NodesWithDataVariablesNodeId, x.NodesWithDataVariablesNodeSetModelUri, x.NodesWithDataVariablesNodeSetPublicationDate });
                     table.ForeignKey(
                         name: "FK_DataVariableModelNodeModel_DataVariables_DataVariablesNodeI~",
@@ -445,8 +443,7 @@ namespace Opc.Ua.Cloud.Library
 
             migrationBuilder.CreateTable(
                 name: "InterfaceModelNodeModel",
-                columns: table => new
-                {
+                columns: table => new {
                     InterfacesNodeId = table.Column<string>(type: "text", nullable: false),
                     InterfacesNodeSetModelUri = table.Column<string>(type: "text", nullable: false),
                     InterfacesNodeSetPublicationDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
@@ -454,8 +451,7 @@ namespace Opc.Ua.Cloud.Library
                     NodesWithInterfaceNodeSetModelUri = table.Column<string>(type: "text", nullable: false),
                     NodesWithInterfaceNodeSetPublicationDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
-                constraints: table =>
-                {
+                constraints: table => {
                     table.PrimaryKey("PK_InterfaceModelNodeModel", x => new { x.InterfacesNodeId, x.InterfacesNodeSetModelUri, x.InterfacesNodeSetPublicationDate, x.NodesWithInterfaceNodeId, x.NodesWithInterfaceNodeSetModelUri, x.NodesWithInterfaceNodeSetPublicationDate });
                     table.ForeignKey(
                         name: "FK_InterfaceModelNodeModel_Interfaces_InterfacesNodeId_Interfa~",
@@ -473,8 +469,7 @@ namespace Opc.Ua.Cloud.Library
 
             migrationBuilder.CreateTable(
                 name: "MethodModelNodeModel",
-                columns: table => new
-                {
+                columns: table => new {
                     MethodsNodeId = table.Column<string>(type: "text", nullable: false),
                     MethodsNodeSetModelUri = table.Column<string>(type: "text", nullable: false),
                     MethodsNodeSetPublicationDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
@@ -482,8 +477,7 @@ namespace Opc.Ua.Cloud.Library
                     NodesWithMethodsNodeSetModelUri = table.Column<string>(type: "text", nullable: false),
                     NodesWithMethodsNodeSetPublicationDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
-                constraints: table =>
-                {
+                constraints: table => {
                     table.PrimaryKey("PK_MethodModelNodeModel", x => new { x.MethodsNodeId, x.MethodsNodeSetModelUri, x.MethodsNodeSetPublicationDate, x.NodesWithMethodsNodeId, x.NodesWithMethodsNodeSetModelUri, x.NodesWithMethodsNodeSetPublicationDate });
                     table.ForeignKey(
                         name: "FK_MethodModelNodeModel_Methods_MethodsNodeId_MethodsNodeSetMo~",
@@ -501,8 +495,7 @@ namespace Opc.Ua.Cloud.Library
 
             migrationBuilder.CreateTable(
                 name: "NodeModelObjectModel",
-                columns: table => new
-                {
+                columns: table => new {
                     NodesWithObjectsNodeId = table.Column<string>(type: "text", nullable: false),
                     NodesWithObjectsNodeSetModelUri = table.Column<string>(type: "text", nullable: false),
                     NodesWithObjectsNodeSetPublicationDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
@@ -510,8 +503,7 @@ namespace Opc.Ua.Cloud.Library
                     ObjectsNodeSetModelUri = table.Column<string>(type: "text", nullable: false),
                     ObjectsNodeSetPublicationDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
-                constraints: table =>
-                {
+                constraints: table => {
                     table.PrimaryKey("PK_NodeModelObjectModel", x => new { x.NodesWithObjectsNodeId, x.NodesWithObjectsNodeSetModelUri, x.NodesWithObjectsNodeSetPublicationDate, x.ObjectsNodeId, x.ObjectsNodeSetModelUri, x.ObjectsNodeSetPublicationDate });
                     table.ForeignKey(
                         name: "FK_NodeModelObjectModel_Nodes_NodesWithObjectsNodeId_NodesWith~",
@@ -529,8 +521,7 @@ namespace Opc.Ua.Cloud.Library
 
             migrationBuilder.CreateTable(
                 name: "NodeModelObjectTypeModel",
-                columns: table => new
-                {
+                columns: table => new {
                     EventsNodeId = table.Column<string>(type: "text", nullable: false),
                     EventsNodeSetModelUri = table.Column<string>(type: "text", nullable: false),
                     EventsNodeSetPublicationDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
@@ -538,8 +529,7 @@ namespace Opc.Ua.Cloud.Library
                     NodesWithEventsNodeSetModelUri = table.Column<string>(type: "text", nullable: false),
                     NodesWithEventsNodeSetPublicationDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
-                constraints: table =>
-                {
+                constraints: table => {
                     table.PrimaryKey("PK_NodeModelObjectTypeModel", x => new { x.EventsNodeId, x.EventsNodeSetModelUri, x.EventsNodeSetPublicationDate, x.NodesWithEventsNodeId, x.NodesWithEventsNodeSetModelUri, x.NodesWithEventsNodeSetPublicationDate });
                     table.ForeignKey(
                         name: "FK_NodeModelObjectTypeModel_Nodes_NodesWithEventsNodeId_NodesW~",
@@ -557,8 +547,7 @@ namespace Opc.Ua.Cloud.Library
 
             migrationBuilder.CreateTable(
                 name: "NodeModelVariableModel",
-                columns: table => new
-                {
+                columns: table => new {
                     NodesWithPropertiesNodeId = table.Column<string>(type: "text", nullable: false),
                     NodesWithPropertiesNodeSetModelUri = table.Column<string>(type: "text", nullable: false),
                     NodesWithPropertiesNodeSetPublicationDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
@@ -566,8 +555,7 @@ namespace Opc.Ua.Cloud.Library
                     PropertiesNodeSetModelUri = table.Column<string>(type: "text", nullable: false),
                     PropertiesNodeSetPublicationDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
-                constraints: table =>
-                {
+                constraints: table => {
                     table.PrimaryKey("PK_NodeModelVariableModel", x => new { x.NodesWithPropertiesNodeId, x.NodesWithPropertiesNodeSetModelUri, x.NodesWithPropertiesNodeSetPublicationDate, x.PropertiesNodeId, x.PropertiesNodeSetModelUri, x.PropertiesNodeSetPublicationDate });
                     table.ForeignKey(
                         name: "FK_NodeModelVariableModel_Nodes_NodesWithPropertiesNodeId_Node~",
@@ -585,8 +573,7 @@ namespace Opc.Ua.Cloud.Library
 
             migrationBuilder.CreateTable(
                 name: "Nodes_OtherReferencingNodes",
-                columns: table => new
-                {
+                columns: table => new {
                     OwnerNodeId = table.Column<string>(type: "text", nullable: false),
                     OwnerModelUri = table.Column<string>(type: "text", nullable: false),
                     OwnerPublicationDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
@@ -597,8 +584,7 @@ namespace Opc.Ua.Cloud.Library
                     ReferencingPublicationDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     Reference = table.Column<string>(type: "text", nullable: true)
                 },
-                constraints: table =>
-                {
+                constraints: table => {
                     table.PrimaryKey("PK_Nodes_OtherReferencingNodes", x => new { x.OwnerNodeId, x.OwnerModelUri, x.OwnerPublicationDate, x.Id });
                     table.ForeignKey(
                         name: "FK_Nodes_OtherReferencingNodes_Nodes_OwnerNodeId_OwnerModelUri~",
