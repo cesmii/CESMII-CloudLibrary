@@ -58,8 +58,8 @@ namespace CloudLibSyncAzureFunction
         {
             log.LogInformation($"C# Timer trigger function executed at: {DateTime.Now}");
             await new CloudLibSync(log).SynchronizeAsync(
-                _options.Source.Url, _options.Source.Username, _options.Source.Password,
-                _options.Target.Url, _options.Target.Username, _options.Target.Password).ConfigureAwait(false);
+                _options.Source.EndPoint, _options.Source.Username, _options.Source.Password,
+                _options.Target.EndPoint, _options.Target.Username, _options.Target.Password).ConfigureAwait(false);
         }
     }
 }
