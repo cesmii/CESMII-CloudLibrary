@@ -152,8 +152,8 @@ namespace Opc.Ua.Cloud.Library
             nodeSetModel.Identifier = identifier;
             nodeSetModel.ValidationStatus = ValidationStatus.Parsed;
             nodeSetModel.ValidationStatusInfo = null;
-            await _dbContext.nodeSets.AddAsync(nodeSetModel);
-            await _dbContext.SaveChangesAsync();
+            await _dbContext.nodeSets.AddAsync(nodeSetModel).ConfigureAwait(false);
+            await _dbContext.SaveChangesAsync().ConfigureAwait(false);
             return nodeSetModel;
         }
 
@@ -208,7 +208,7 @@ namespace Opc.Ua.Cloud.Library
                     do
                     {
                         previousCount = changedCount;
-                        changedCount = await IndexNodeSetsInternalAsync(factory);
+                        changedCount = await IndexNodeSetsInternalAsync(factory).ConfigureAwait(false);
                         rerunCount++;
                         if (rerunCount >= 50)
                         {
@@ -295,7 +295,7 @@ namespace Opc.Ua.Cloud.Library
                 }
                 if (previousValidationStatus.Status != nodeSetModel.ValidationStatus || previousValidationStatus.Info != nodeSetModel.ValidationStatusInfo)
                 {
-                    await _dbContext.SaveChangesAsync();
+                    await _dbContext.SaveChangesAsync().ConfigureAwait(false);
                     _database.UpdateMetaDataForNodeSet(uint.Parse(identifier, CultureInfo.InvariantCulture), "validationstatus", nodeSetModel.ValidationStatus.ToString());
                     bChanged = true;
                 }
@@ -315,6 +315,7 @@ namespace Opc.Ua.Cloud.Library
                     .Where(id => !_dbContext.nodeSets.Any(nsm => nsm.Identifier == id))
                     .ToListAsync().ConfigureAwait(false);
 #pragma warning restore CA1305 // Specify IFormatProvider
+
                 foreach (var missingNodeSetId in missingNodeSetIds)
                 {
                     try
@@ -322,17 +323,34 @@ namespace Opc.Ua.Cloud.Library
                         _logger.LogDebug($"Dowloading missing nodeset {missingNodeSetId}");
                         var nodeSetXml = await _storage.DownloadFileAsync(missingNodeSetId).ConfigureAwait(false);
 
-                        _logger.LogDebug($"Parsing missing nodeset {missingNodeSetId}");
-                        var uaNodeSet = InfoModelController.ReadUANodeSet(nodeSetXml);
+                        if (nodeSetXml != null)
+                        {
+                            _logger.LogDebug($"Parsing missing nodeset {missingNodeSetId}");
+                            var uaNodeSet = InfoModelController.ReadUANodeSet(nodeSetXml);
 
-                        _logger.LogDebug($"Indexing missing nodeset {missingNodeSetId}");
-                        var nodeSetModel = await this.CreateNodeSetModelFromNodeSetAsync(uaNodeSet, missingNodeSetId).ConfigureAwait(false);
+                            _logger.LogDebug($"Indexing missing nodeset {missingNodeSetId}");
+                            var nodeSetModel = await CreateNodeSetModelFromNodeSetAsync(uaNodeSet, missingNodeSetId).ConfigureAwait(false);
 
-                        _logger.LogWarning($"Database inconsistency: Created index entry for nodeset {missingNodeSetId} {nodeSetModel}");
+                            _logger.LogWarning($"Database inconsistency: Created index entry for nodeset {missingNodeSetId} {nodeSetModel}");
+                        }
+                        else
+                        {
+                            _logger.LogError($"Failed to re-index missing nodeset {missingNodeSetId}: not found in file storage.");
+                        }
                     }
                     catch (Exception ex)
                     {
                         _logger.LogError(ex, $"Failed to re-index missing nodeset {missingNodeSetId}");
+                    }
+                    finally
+                    {
+                        // Acquire a new context for each nodeset in case a nodeset fails to index but leaves the _dbContext "tainted" (for example PublicationDate == null)
+                        var newDbContext = _scope.ServiceProvider.GetService<AppDbContext>();
+                        if (newDbContext != _dbContext)
+                        {
+                            _dbContext.Dispose();
+                            _dbContext = newDbContext;
+                        }
                     }
                 }
             }
