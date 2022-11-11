@@ -216,7 +216,6 @@ namespace Opc.Ua.Cloud.Library.Models
             LastModifiedDate = DateTime.MinValue;
         }
 
-        [Required]
         public string NodesetXml { get; set; }
 
         public uint Identifier { get; set; }
