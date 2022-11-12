@@ -33,32 +33,44 @@ namespace Opc.Ua.CloudLib.Sync
         public async Task DownloadAsync(string sourceUrl, string sourceUserName, string sourcePassword, string localDir, string nodeSetXmlDir)
         {
             var sourceClient = new UACloudLibClient(sourceUrl, sourceUserName, sourcePassword);
-            // Get all infomodels
-            var nameAndIdentifiers = await sourceClient.GetNamespaceIdsAsync().ConfigureAwait(false);
 
-            foreach (var nameAndIdentifier in nameAndIdentifiers)
+            GraphQlResult<Nodeset> nodeSetResult;
+            string? cursor = null;
+            do
             {
-                // Download each infomodel
-                var addressSpace = await sourceClient.DownloadNodesetAsync(nameAndIdentifier.Identifier).ConfigureAwait(false);
+                // Get all infomodels
+                nodeSetResult = await sourceClient.GetNodeSets(after: cursor, first: 50).ConfigureAwait(false);
 
-                if (addressSpace?.Nodeset != null)
+                foreach (var nodeSetAndCursor in nodeSetResult.Edges)
                 {
-                    if (!Directory.Exists(localDir))
-                    {
-                        Directory.CreateDirectory(localDir);
-                    }
-                    var fileName = GetFileNameForNamespaceUri(nameAndIdentifier.NamespaceUri);
-                    File.WriteAllText(Path.Combine(localDir, $"{fileName}.{nameAndIdentifier.Identifier}.xml"), JsonConvert.SerializeObject(addressSpace));
-                    _logger.LogInformation($"Downloaded {nameAndIdentifier.NamespaceUri}, {nameAndIdentifier.Identifier}");
+                    // Download each infomodel
+                    var identifier = nodeSetAndCursor.Node.Identifier.ToString(CultureInfo.InvariantCulture);
+                    var uaNameSpace = await sourceClient.DownloadNodesetAsync(identifier).ConfigureAwait(false);
 
-                    if (nodeSetXmlDir != null)
+                    if (uaNameSpace?.Nodeset != null)
                     {
-                        SaveNodeSetAsXmlFile(addressSpace, nodeSetXmlDir);
+                        if (!Directory.Exists(localDir))
+                        {
+                            Directory.CreateDirectory(localDir);
+                        }
+
+                        string? namespaceUri = VerifyAndFixupNodeSetMeta(uaNameSpace.Nodeset);
+
+                        var fileName = GetFileNameForNamespaceUri(namespaceUri);
+                        File.WriteAllText(Path.Combine(localDir, $"{fileName}.{identifier}.json"), JsonConvert.SerializeObject(uaNameSpace));
+                        _logger.LogInformation($"Downloaded {namespaceUri}, {identifier}");
+
+                        if (nodeSetXmlDir != null)
+                        {
+                            SaveNodeSetAsXmlFile(uaNameSpace, nodeSetXmlDir);
+                        }
                     }
                 }
+                cursor = nodeSetResult.PageInfo.EndCursor;
             }
-
+            while (nodeSetResult.PageInfo.HasNextPage);
         }
+
         /// <summary>
         /// Synchronizes from one cloud lib to another.
         /// </summary>
@@ -77,84 +89,62 @@ namespace Opc.Ua.CloudLib.Sync
             bool bAdded;
             do
             {
+                List<Nodeset> targetNodesets = new();
+                GraphQlResult<Nodeset> targetNodeSetResult;
+                string? targetCursor = null;
+                do
+                {
+                    targetNodeSetResult = await targetClient.GetNodeSets(after: targetCursor, first: 50).ConfigureAwait(false);
+                    targetNodesets.AddRange(targetNodeSetResult.Edges.Select(e => e.Node));
+                    targetCursor = targetNodeSetResult.PageInfo.EndCursor;
+                } while (targetNodeSetResult.PageInfo.HasNextPage);
+
                 bAdded = false;
 
-                var targetNamespaces = await targetClient.GetNameSpacesAsync(100).ConfigureAwait(false);
-                //await FillMissingNamespaceUris(targetClient, targetNamespaces).ConfigureAwait(false);
-                var sourceNamespaces = await sourceClient.GetNameSpacesAsync(100).ConfigureAwait(false);
-                //await FillMissingNamespaceUris(sourceClient, sourceNamespaces).ConfigureAwait(false);
-
-                // Get the ones that not already on the target
-                var toSync = sourceNamespaces.Where(source => !targetNamespaces.Any(target =>
-                    source.Nodeset.NamespaceUri?.ToString() == target.Nodeset.NamespaceUri?.ToString()
-                    && (source.Nodeset.PublicationDate == target.Nodeset.PublicationDate || (source.Nodeset.Identifier != 0 && source.Nodeset.Identifier == target.Nodeset.Identifier))
-                    )).ToList();
-                foreach (var nameSpace in toSync)
+                GraphQlResult<Nodeset> sourceNodeSetResult;
+                string? sourceCursor = null;
+                do
                 {
-                    // Download each infomodel
-                    var nodeSet = await sourceClient.DownloadNodesetAsync(nameSpace.Nodeset.Identifier.ToString(CultureInfo.InvariantCulture)).ConfigureAwait(false);
+                    sourceNodeSetResult = await sourceClient.GetNodeSets(after: sourceCursor, first: 50).ConfigureAwait(false);
 
-                    try
+                    // Get the ones that are not already on the target
+                    var toSync = sourceNodeSetResult.Edges
+                        .Select(e => e.Node)
+                        .Where(source => !targetNodesets
+                            .Any(target =>
+                                source.NamespaceUri?.ToString() == target.NamespaceUri?.ToString()
+                                && (source.PublicationDate == target.PublicationDate || (source.Identifier != 0 && source.Identifier == target.Identifier))
+                        )).ToList();
+                    foreach (var nodeSet in toSync)
                     {
-                        // upload infomodel to target cloud library
-                        var response = await targetClient.UploadNodeSetAsync(nodeSet).ConfigureAwait(false);
-                        if (response.Status == System.Net.HttpStatusCode.OK)
+                        // Download each infomodel
+                        var identifier = nodeSet.Identifier.ToString(CultureInfo.InvariantCulture);
+                        var uaNamespace = await sourceClient.DownloadNodesetAsync(identifier).ConfigureAwait(false);
+
+                        try
                         {
-                            bAdded = true;
-                            _logger.LogInformation($"Uploaded {nameSpace.Nodeset.NamespaceUri}, {nameSpace.Nodeset.Identifier}");
+                            VerifyAndFixupNodeSetMeta(uaNamespace.Nodeset);
+                            // upload infomodel to target cloud library
+                            var response = await targetClient.UploadNodeSetAsync(uaNamespace).ConfigureAwait(false);
+                            if (response.Status == System.Net.HttpStatusCode.OK)
+                            {
+                                bAdded = true;
+                                _logger.LogInformation($"Uploaded {uaNamespace.Nodeset.NamespaceUri}, {identifier}");
+                            }
+                            else
+                            {
+                                _logger.LogError($"Error uploading {uaNamespace.Nodeset.NamespaceUri}, {identifier}: {response.Status} {response.Message}");
+                            }
                         }
-                        else
+                        catch (Exception ex)
                         {
-                            _logger.LogError($"Error uploading {nameSpace.Nodeset.NamespaceUri}, {nameSpace.Nodeset.Identifier}: {response.Status} {response.Message}");
+                            _logger.LogError($"Error uploading {uaNamespace.Nodeset.NamespaceUri}, {identifier}: {ex.Message}");
                         }
                     }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError($"Error uploading { nameSpace.Nodeset.NamespaceUri}, { nameSpace.Nodeset.Identifier}: {ex.Message}");
-                    }
-                }
+                    sourceCursor = sourceNodeSetResult.PageInfo.EndCursor;
+                } while (sourceNodeSetResult.PageInfo.HasNextPage);
             } while (bAdded);
-            //// Get all infomodels from both cloudlibs
-            //var nameAndIdentifiersTarget = await targetClient.GetNamespacesAsync().ConfigureAwait(false);
-            //var nameAndIdentifiers = await sourceClient.GetNamespacesAsync().ConfigureAwait(false);
-
-            //// Get the ones that not already on the target
-            //var toSync = nameAndIdentifiers.Where(source => !nameAndIdentifiersTarget.Any(target => source.namespaceUri == target.namespaceUri && source.identifier == target.identifier)).ToList();
-
-            //foreach (var nameAndIdentifier in toSync)
-            //{
-            //    // Download each infomodel
-            //    var addressSpace = await sourceClient.DownloadNodesetAsync(nameAndIdentifier.identifier).ConfigureAwait(false);
-
-            //    // upload infomodel to target cloud library
-            //    var error = await targetClient.UploadNodeSetAsync(addressSpace).ConfigureAwait(false);
-            //    if (string.IsNullOrEmpty(error))
-            //    {
-            //        _logger.LogInformation($"Uploaded {nameAndIdentifier.namespaceUri}, {nameAndIdentifier.identifier}");
-            //    }
-            //    else
-            //    {
-            //        _logger.LogInformation($"Error uploading {nameAndIdentifier.namespaceUri}, {nameAndIdentifier.identifier}: {error}");
-            //    }
-            //}
-
         }
-
-        //private static async Task FillMissingNamespaceUris(UACloudLibClient client, List<UANameSpace> nameSpaces)
-        //{
-        //    if (string.IsNullOrEmpty(nameSpaces.FirstOrDefault()?.Nodeset?.NamespaceUri?.ToString()))
-        //    {
-        //        var nameAndIdentifiersTarget = await client.GetNamespacesAsync().ConfigureAwait(false);
-        //        foreach (var ns in nameSpaces)
-        //        {
-        //            var ni = nameAndIdentifiersTarget.FirstOrDefault(ni => ni.identifier == ns.Nodeset.Identifier.ToString(CultureInfo.InvariantCulture));
-        //            if (!string.IsNullOrEmpty(ni.namespaceUri))
-        //            {
-        //                ns.Nodeset.NamespaceUri = new Uri(ni.namespaceUri);
-        //            }
-        //        }
-        //    }
-        //}
 
         /// <summary>
         /// Uploads nodesets from a local directory to a cloud library
@@ -196,10 +186,49 @@ namespace Opc.Ua.CloudLib.Sync
             }
         }
 
+        private string? VerifyAndFixupNodeSetMeta(Nodeset nodeset)
+        {
+            var namespaceUri = nodeset?.NamespaceUri?.ToString();
+
+            if (nodeset?.NodesetXml != null)
+            {
+                using (var ms = new MemoryStream(Encoding.UTF8.GetBytes(nodeset.NodesetXml)))
+                {
+                    var nodeSet = UANodeSet.Read(ms);
+                    var firstModel = nodeSet.Models?.FirstOrDefault();
+                    if (firstModel != null)
+                    {
+                        if (firstModel.PublicationDateSpecified && firstModel.PublicationDate != DateTime.MinValue && firstModel.PublicationDate != nodeset.PublicationDate)
+                        {
+                            _logger.LogWarning($"Publication date {nodeset.PublicationDate} in meta data does not match nodeset {firstModel.PublicationDate}. Fixed up.");
+                            nodeset.PublicationDate = firstModel.PublicationDate;
+                        }
+                        if (firstModel.Version != nodeset.Version)
+                        {
+                            _logger.LogWarning($"Version  {nodeset.Version} in meta data does not match nodeset {firstModel.Version}. Fixed up.");
+                            nodeset.Version = firstModel.Version;
+                        }
+                        if (nodeSet.LastModifiedSpecified && nodeSet.LastModified != nodeset.LastModifiedDate)
+                        {
+                            _logger.LogWarning($"Last modified date {nodeset.LastModifiedDate} in meta data does not match nodeset {nodeSet.LastModified}. Fixed up.");
+                            nodeset.LastModifiedDate = nodeSet.LastModified;
+                        }
+                        if (namespaceUri == null)
+                        {
+                            namespaceUri = nodeSet.Models?.FirstOrDefault()?.ModelUri;
+                        }
+                    }
+                }
+            }
+
+            return namespaceUri;
+        }
+
         private static string GetFileNameForNamespaceUri(string? modelUri)
         {
             var tFile = modelUri?.Replace("http://", "", StringComparison.OrdinalIgnoreCase) ?? "";
             tFile = tFile.Replace('/', '.');
+            tFile = tFile.Replace(':', '_');
             if (!tFile.EndsWith(".", StringComparison.Ordinal)) tFile += ".";
             tFile = $"{tFile}NodeSet2.xml";
             return tFile;

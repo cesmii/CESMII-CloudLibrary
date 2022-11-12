@@ -32,7 +32,6 @@ namespace Opc.Ua.Cloud.Library
     using System;
     using System.IO;
     using Amazon.S3;
-    using GraphQL;
     using GraphQL.Server.Ui.Playground;
     using HotChocolate.AspNetCore;
     using Microsoft.AspNetCore.Authentication;
@@ -71,9 +70,7 @@ namespace Opc.Ua.Cloud.Library
             services.AddRazorPages();
 
             // Setup database context for ASP.NetCore Identity Scaffolding
-            services.AddDbContext<AppDbContext>(o => {
-                o.UseNpgsql(PostgreSQLDB.CreateConnectionString(Configuration));
-            }, ServiceLifetime.Transient);
+            services.AddDbContext<AppDbContext>(ServiceLifetime.Transient);
 
             services.AddDefaultIdentity<IdentityUser>(options =>
                     //require confirmation mail if sendgrid API Key is set
@@ -82,7 +79,7 @@ namespace Opc.Ua.Cloud.Library
 
             services.AddScoped<IUserService, UserService>();
 
-            services.AddScoped<IDatabase, PostgreSQLDB>();
+            services.AddTransient<IDatabase, CloudLibDataProvider>();
 
             services.AddTransient<IEmailSender, EmailSender>();
 
@@ -124,7 +121,7 @@ namespace Opc.Ua.Cloud.Library
                                     Id = "basic"
                                 }
                             },
-                            new string[] {}
+                            Array.Empty<string>()
                     }
                 });
 
@@ -146,8 +143,12 @@ namespace Opc.Ua.Cloud.Library
                     services.AddSingleton<IFileStorage, AWSFileStorage>();
                     break;
                 case "GCP": services.AddSingleton<IFileStorage, GCPFileStorage>(); break;
-                case null: services.AddSingleton<IFileStorage, LocalFileStorage>(); break;
-                default: throw new Exception("Invalid HostingPlatform specified in environment! Valid variables are Azure, AWS and GCP");
+                default:
+                {
+                    services.AddSingleton<IFileStorage, LocalFileStorage>();
+                    Console.WriteLine("WARNING: Using local filesystem for storage as HostingPlatform environment variable not specified or invalid!");
+                    break;
+                }
             }
 
             var serviceName = Configuration["Application"] ?? "UACloudLibrary";
@@ -155,16 +156,14 @@ namespace Opc.Ua.Cloud.Library
             // setup data protection
             switch (Configuration["HostingPlatform"])
             {
-                case "Azure": services.AddDataProtection().PersistKeysToAzureBlobStorage(Configuration["BlobStorageConnectionString"], "keys", "keys"); break;
+                case "Azure": services.AddDataProtection().PersistKeysToAzureBlobStorage(Configuration["BlobStorageConnectionString"], "keys", Configuration["DataProtectionBlobName"]); break;
                 case "AWS": services.AddDataProtection().PersistKeysToAWSSystemsManager($"/{serviceName}/DataProtection"); break;
                 case "GCP": services.AddDataProtection().PersistKeysToGoogleCloudStorage(Configuration["BlobStorageConnectionString"], "DataProtectionProviderKeys.xml"); break;
-                case null: services.AddDataProtection().PersistKeysToFileSystem(new DirectoryInfo(Directory.GetCurrentDirectory())); break;
-                default: throw new Exception("Invalid HostingPlatform specified in environment! Valid variables are Azure, AWS and GCP");
+                default: services.AddDataProtection().PersistKeysToFileSystem(new DirectoryInfo(Directory.GetCurrentDirectory())); break;
             }
 
             services.AddHttpContextAccessor();
 
-            #region setup GraphQL server
             services.AddGraphQLServer()
                 .AddAuthorization()
                 .SetPagingOptions(new HotChocolate.Types.Pagination.PagingOptions {
@@ -177,12 +176,10 @@ namespace Opc.Ua.Cloud.Library
                 .AddQueryType<QueryModel>()
                 .AddType<CloudLibNodeSetModelType>()
                 .BindRuntimeType<UInt32, HotChocolate.Types.UnsignedIntType>()
-                .BindRuntimeType<UInt16, HotChocolate.Types.UnsignedShortType>()
-                ;
+                .BindRuntimeType<UInt16, HotChocolate.Types.UnsignedShortType>();
+
             services.AddScoped<NodeSetModelIndexer>();
             services.AddScoped<NodeSetModelIndexerFactory>();
-            services.AddTransient<UaCloudLibResolver>();
-            #endregion
 
             services.Configure<IISServerOptions>(options => {
                 options.AllowSynchronousIO = true;
@@ -191,6 +188,8 @@ namespace Opc.Ua.Cloud.Library
             services.Configure<KestrelServerOptions>(options => {
                 options.AllowSynchronousIO = true;
             });
+
+            services.AddServerSideBlazor();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -219,10 +218,11 @@ namespace Opc.Ua.Cloud.Library
 
             app.UseAuthorization();
 
-            app.UseGraphQLPlayground(new PlaygroundOptions() {
-                RequestCredentials = RequestCredentials.Include
-            },
-            "/graphqlui");
+            app.UseGraphQLPlayground(
+                "/graphqlui",
+                new PlaygroundOptions() {
+                    RequestCredentials = RequestCredentials.Include
+                });
             app.UseGraphQLGraphiQL("/graphiql");
 
             app.UseEndpoints(endpoints => {
@@ -231,13 +231,13 @@ namespace Opc.Ua.Cloud.Library
                     pattern: "{controller=Home}/{action=Index}/{id?}");
 
                 endpoints.MapRazorPages();
+                endpoints.MapBlazorHub();
                 endpoints.MapGraphQL()
                     .RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = "BasicAuthentication" })
                     .WithOptions(new GraphQLServerOptions {
                         EnableGetRequests = true,
-                        Tool = { Enable = false, },
-                    })
-                    ;
+                        Tool = { Enable = false },
+                    });
             });
         }
     }

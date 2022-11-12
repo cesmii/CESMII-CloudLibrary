@@ -167,6 +167,15 @@ namespace Opc.Ua.Cloud.Library.Client
         /// <value>The additional properties.</value>
         [JsonProperty("additionalProperties")]
         public UAProperty[] AdditionalProperties { get; set; }
+
+        /// <summary>
+        /// String representation for logging and debugging
+        /// </summary>
+        /// <returns></returns>
+        public override string ToString()
+        {
+            return $"{Title} {Nodeset} {ValidationStatus}";
+        }
     }
 
     /// <summary>Property Class</summary>
@@ -301,11 +310,25 @@ namespace Opc.Ua.Cloud.Library.Client
         /// <summary>
         /// Nodesets that this nodeset depends on
         /// </summary>
-        public List<RequiredModelInfo> RequiredModels { get; internal set; }
+        public List<RequiredModelInfo> RequiredModels { get; set; }
+
+        /// <summary>
+        /// Meta data about the node set that are not captured in the nodeset itself
+        /// </summary>
+        public UANameSpace Metadata { get; set; }
+
+        /// <summary>
+        /// String representation for logging and debugging
+        /// </summary>
+        /// <returns></returns>
+        public override string ToString()
+        {
+            return $"{NamespaceUri} {PublicationDate} {Version} {Identifier} {ValidationStatus}";
+        }
     }
 
     /// <summary>
-    /// Contains information about dependencies of a nodeset
+    /// Information about dependencies of a nodeset
     /// </summary>
     public class RequiredModelInfo
     {

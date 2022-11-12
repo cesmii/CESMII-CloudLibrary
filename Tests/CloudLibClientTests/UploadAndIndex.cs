@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -36,7 +37,7 @@ namespace CloudLibClient.Tests
 
             var addressSpace = JsonConvert.DeserializeObject<UANameSpace>(uploadJson);
             var response = await client.UploadNodeSetAsync(addressSpace).ConfigureAwait(false);
-            if (response.Status == System.Net.HttpStatusCode.OK)
+            if (response.Status == HttpStatusCode.OK)
             {
                 output.WriteLine($"Uploaded {addressSpace?.Nodeset.NamespaceUri}, {addressSpace?.Nodeset.Identifier}");
             }
@@ -44,7 +45,11 @@ namespace CloudLibClient.Tests
             {
                 if (!(TestSetup._bIgnoreUploadConflict && response.Message.Contains("Nodeset already exists")))
                 {
-                    throw new Exception(($"Error uploading {addressSpace?.Nodeset.NamespaceUri}, {addressSpace?.Nodeset.Identifier}: {response.Status} {response.Message}"));
+                    throw new Exception(($"Error uploading {addressSpace}: {response.Status} {response.Message}"));
+                }
+                else
+                {
+                    Assert.Equal(HttpStatusCode.OK, response.Status);
                 }
             }
         }
@@ -68,7 +73,7 @@ namespace CloudLibClient.Tests
             while (bIndexing);
         }
 
-        async Task<(int All, int NotIndexed)> GetNodeSetCountsAsync(HttpClient client)
+        static async Task<(int All, int NotIndexed)> GetNodeSetCountsAsync(HttpClient client)
         {
             var queryBodyJson = JsonConvert.SerializeObject(new JObject { { "query", @"
                         {
