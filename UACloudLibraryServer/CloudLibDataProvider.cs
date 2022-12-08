@@ -501,8 +501,12 @@ namespace Opc.Ua.Cloud.Library
 
                 var idStr = /*nodeSetAndMd.N*/nodeSet.Identifier;
                 var id = uint.Parse(idStr, CultureInfo.InvariantCulture);
+                if (!metaDataForMatchesByNodeSetId.TryGetValue(id, out var metaData))
+                {
+                    continue;
+                }
                 ConvertNodeSetMetadata(id,
-                    metaDataForMatchesByNodeSetId[id],
+                    metaData,
                     nodeSet,
                     nameSpace);
 
