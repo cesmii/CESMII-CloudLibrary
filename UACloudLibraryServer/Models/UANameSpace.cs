@@ -106,7 +106,7 @@ namespace Opc.Ua.Cloud.Library.Models
 
     }
 
-    public class UANameSpaceAndNodeSet: UANameSpaceMetadata
+    public class UANameSpaceAndNodeSet : UANameSpaceMetadata
     {
         public UANameSpaceAndNodeSet()
         {
