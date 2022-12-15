@@ -145,6 +145,9 @@ namespace Opc.Ua.Cloud.Library
                 _logger.LogError(ex.Message);
                 throw;
             }
+#else
+            // Make code analysis tools happy
+            await Task.CompletedTask;
 #endif
         }
 
