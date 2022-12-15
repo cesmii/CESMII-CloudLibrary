@@ -150,6 +150,7 @@ namespace Opc.Ua.Cloud.Library
                     services.AddSingleton<IFileStorage, AWSFileStorage>();
                     break;
                 case "GCP": services.AddSingleton<IFileStorage, GCPFileStorage>(); break;
+                case "DevDB": services.AddScoped<IFileStorage, DevDbFileStorage>(); break;
                 default:
                 {
                     services.AddSingleton<IFileStorage, LocalFileStorage>();
@@ -181,6 +182,7 @@ namespace Opc.Ua.Cloud.Library
                 .AddFiltering()
                 .AddSorting()
                 .AddQueryType<QueryModel>()
+                .AddMutationType<MutationModel>()
                 .AddType<CloudLibNodeSetModelType>()
                 .BindRuntimeType<UInt32, HotChocolate.Types.UnsignedIntType>()
                 .BindRuntimeType<UInt16, HotChocolate.Types.UnsignedShortType>();
