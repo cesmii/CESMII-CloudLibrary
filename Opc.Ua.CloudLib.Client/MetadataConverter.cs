@@ -127,6 +127,7 @@ namespace Opc.Ua.Cloud.Library.Client
                     Version = info.Version,
                     Identifier = info.Id,
                     RequiredModels = info.RequiredNodesets,
+                    ValidationStatus = info.ValidationStatus,
                 },
                 Contributor = new Organisation {
                     Name = info.Contributor,
@@ -204,9 +205,6 @@ namespace Opc.Ua.Cloud.Library.Client
                 case "numdownloads":
                     nameSpace.NumberOfDownloads = System.Convert.ToUInt32(metadata.Value, CultureInfo.InvariantCulture);
                     break;
-                case "validationstatus":
-                    nameSpace.ValidationStatus = metadata.Value;
-                    break;
                 case "nodesettitle":
                     nameSpace.Title = metadata.Value;
                     break;
@@ -260,6 +258,9 @@ namespace Opc.Ua.Cloud.Library.Client
                     break;
                 case "version":
                     nameSpace.Nodeset.Version = metadata.Value;
+                    break;
+                case "validationstatus":
+                    nameSpace.Nodeset.ValidationStatus = metadata.Value;
                     break;
                 #endregion
                 #region Contributor Cases
