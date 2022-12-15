@@ -27,24 +27,21 @@ namespace CloudLibClient.Tests
     {
         private static int InstantiationCount;
         private readonly CustomWebApplicationFactory<Startup> _factory;
-        private readonly bool _bClearDB;
-        public static bool _bIgnoreUploadConflict;
 
         public TestSetup(CustomWebApplicationFactory<Opc.Ua.Cloud.Library.Startup> factory)
         {
             _factory = factory;
             InstantiationCount++;
-            var testConfig = _factory.Services.GetService<IConfiguration>()?.GetSection("IntegrationTest");
-            _bClearDB = testConfig?.GetValue<bool>("DeleteCloudLibDBAndStore") ?? false;
-            _bIgnoreUploadConflict = testConfig?.GetValue<bool>("IgnoreUploadConflict") ?? false;
         }
 
         [Fact]
         public void Setup()
         {
-            if (_bClearDB && InstantiationCount == 1)
+            if (_factory.TestConfig.DeleteCloudLibDBAndStore && InstantiationCount == 1)
             {
+                // Start the app
                 var client = _factory.CreateAuthorizedClient();
+                Assert.NotNull(client);
 
                 using (var scope = _factory.Server.Services.CreateScope())
                 {
