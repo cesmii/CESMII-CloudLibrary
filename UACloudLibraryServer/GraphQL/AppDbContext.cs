@@ -68,6 +68,7 @@ namespace Opc.Ua.Cloud.Library
                 string connectionString = CreateConnectionString(configuration);
                 optionsBuilder.UseNpgsql(connectionString, o => o
                     .UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
+                        .UseQuerySplittingBehavior(QuerySplittingBehavior.SingleQuery)
                     .EnableRetryOnFailure()
                     );
             }
@@ -153,6 +154,11 @@ namespace Opc.Ua.Cloud.Library
             builder.Entity<NodeSetModel>()
                 .HasAlternateKey(nm => nm.Identifier)
                 ;
+
+            builder.Entity<NodeModel>()
+                .HasIndex(nm => new { nm.BrowseName })
+                .HasMethod("GIN")
+                .IsTsVectorExpressionIndex("english");
 
             NamespaceMetaDataModel.OnModelCreating(builder);
             builder.Entity<MetadataModel>().HasKey(k => k.Id);

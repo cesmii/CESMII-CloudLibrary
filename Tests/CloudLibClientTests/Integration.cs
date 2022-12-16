@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Opc.Ua.Cloud.Library;
+using Opc.Ua.Cloud.Library.Interfaces;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -52,11 +52,12 @@ namespace CloudLibClient.Tests
                         // Create tables etc., so migration does not get attributed to the first actual test
                         dbContext.Database.Migrate();
                     }
-                }
-                var fileStoreRoot = Path.Combine(Path.GetTempPath(), "CloudLib");
-                if (Directory.Exists(fileStoreRoot))
-                {
-                    Directory.Delete(fileStoreRoot, true);
+
+                    var storage = scope.ServiceProvider.GetRequiredService<IFileStorage>();
+                    if (storage is LocalFileStorage localStorage)
+                    {
+                        _ = localStorage.DeleteAllFilesAsync().Result;
+                    }
                 }
             }
         }

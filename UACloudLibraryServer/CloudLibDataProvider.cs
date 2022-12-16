@@ -254,11 +254,6 @@ namespace Opc.Ua.Cloud.Library
             try
             {
                 var nodesetIdStr = nodesetId.ToString(CultureInfo.InvariantCulture);
-                var records = _dbContext.LegacyMetadata.Where(md => md.NodesetId == nodesetId);
-                foreach (var record in records)
-                {
-                    _dbContext.LegacyMetadata.Remove(record);
-                }
                 List<CloudLibNodeSetModel> deletedNodeSets = new();
                 await DeleteNodeSetIndexForNodesetAsync(nodesetIdStr, deletedNodeSets).ConfigureAwait(false);
 
@@ -349,12 +344,16 @@ namespace Opc.Ua.Cloud.Library
                 matchingNodeSets =
                     _dbContext.nodeSets
                     .Where(nsm =>
-                        _dbContext.nodeModels.Any(nm => nm.NodeSet.Identifier == nsm.Identifier && Regex.IsMatch(nm.DisplayName.FirstOrDefault().Text, keywordRegex, RegexOptions.IgnoreCase))
-                        || _dbContext.NamespaceMetaData.Any(md =>
+                        _dbContext.NamespaceMetaData.Any(md =>
                             md.NodesetId == nsm.Identifier
-                            && EF.Functions.ToTsVector(/*"english", */md.Title + " || " + md.Description/* + " " + string.Join(' ', md.Keywords) + md.Category.Name + md.Contributor.Name*/)
-                               .Matches(keywordTsQuery))
-                        //|| _dbContext.Metadata.Any(md => md.NodesetId.ToString() == nsm.Identifier && Regex.IsMatch(md.Value, keywordRegex, RegexOptions.IgnoreCase))
+                            && Regex.IsMatch(md.Title + md.Description, keywordRegex, RegexOptions.IgnoreCase)
+                            // Fulltext appears to be slower than regex: && EF.Functions.ToTsVector("english", md.Title + " || " + md.Description/* + " " + string.Join(' ', md.Keywords) + md.Category.Name + md.Contributor.Name*/).Matches(keywordTsQuery))
+                            )
+
+                        || _dbContext.nodeModels.Any(nm => nm.NodeSet.Identifier == nsm.Identifier && Regex.IsMatch(nm.BrowseName, keywordRegex, RegexOptions.IgnoreCase))
+                        // Fulltext appears to be slower than regex: || _dbContext.nodeModels.Any(nm => nm.NodeSet.Identifier == nsm.Identifier && EF.Functions.ToTsVector("english", nm.BrowseName).Matches(keywordTsQuery))
+                        // Displayname is localized and this query is slower, even with an index. We could add a DefaultDisplayName to speed this up, if BrowseName ends up being incorrect
+                        //|| _dbContext.nodeModels.Any(nm => nm.NodeSet.Identifier == nsm.Identifier && Regex.IsMatch(nm.DisplayName.FirstOrDefault().Text, keywordRegex, RegexOptions.IgnoreCase))
                         );
 #pragma warning restore CA1305 // Specify IFormatProvider
             }
