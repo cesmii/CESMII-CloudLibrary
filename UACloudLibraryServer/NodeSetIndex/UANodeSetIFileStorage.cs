@@ -28,6 +28,7 @@
  * ======================================================================*/
 
 using System;
+using System.Linq;
 using CESMII.OpcUa.NodeSetImporter;
 using CESMII.OpcUa.NodeSetModel.EF;
 using Opc.Ua.Cloud.Library.Interfaces;
@@ -48,16 +49,20 @@ namespace Opc.Ua.Cloud.Library
         private readonly IFileStorage _storage;
         private readonly AppDbContext _dbContext;
 
-        public bool AddNodeSet(UANodeSetImportResult results, string nodeSetXml, object TenantID)
+        public bool AddNodeSet(UANodeSetImportResult results, string nodeSetXml, object TenantID, bool requested)
         {
             // Assume already added to cloudlib storage before
             var nodeSet = InfoModelController.ReadUANodeSet(nodeSetXml);
-            results.AddModelAndDependencies(nodeSet, nodeSet.Models?[0], null, false);
-            return false;
+            // Assumption: exactly one nodeSetXml was passed into UANodeSetImport.ImportNodeSets and it's the first one being added.
+            bool isNew = !results.Models.Any();
+            var modelInfo = results.AddModelAndDependencies(nodeSet, nodeSet.Models?[0], null, isNew);
+            modelInfo.Model.RequestedForThisImport = requested;
+            return modelInfo.Added;
         }
 
         public void DeleteNewlyAddedNodeSetsFromCache(UANodeSetImportResult results)
         {
+            // Not needed as files are stored externally in the cloud library regardless of indexer state
         }
 
         public UANodeSetImportResult FlushCache()
@@ -68,14 +73,14 @@ namespace Opc.Ua.Cloud.Library
         public bool GetNodeSet(UANodeSetImportResult results, ModelNameAndVersion nameVersion, object TenantID)
         {
             // Find next higher model if no exact match
-            var matchingNodeSet = DbOpcUaContext.GetMatchingOrHigherNodeSetAsync(_dbContext, nameVersion.ModelUri, nameVersion.PublicationDate).Result as CloudLibNodeSetModel;
+            var matchingNodeSet = DbOpcUaContext.GetMatchingOrHigherNodeSetAsync(_dbContext, nameVersion.ModelUri, nameVersion.PublicationDate, nameVersion.ModelVersion).Result as CloudLibNodeSetModel;
             if (matchingNodeSet != null)
             {
                 string tFileName = matchingNodeSet.Identifier;
                 var nodeSetXml = _storage.DownloadFileAsync(tFileName).Result;
                 if (nodeSetXml != null)
                 {
-                    AddNodeSet(results, nodeSetXml, TenantID);
+                    AddNodeSet(results, nodeSetXml, TenantID, false);
                     return true;
                 }
             }

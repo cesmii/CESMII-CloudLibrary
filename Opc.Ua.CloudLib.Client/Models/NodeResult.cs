@@ -30,7 +30,9 @@
 namespace Opc.Ua.Cloud.Library.Client
 {
     using System;
+    using System.Collections;
     using System.Collections.Generic;
+    using System.Linq;
 
     /// <summary>
     /// Captures a GraphQL node and it's cursor (GraphQL edge)
@@ -121,7 +123,7 @@ namespace Opc.Ua.Cloud.Library.Client
     public class GraphQlResult<T> : GraphQlPaginationInfo
     {
         /// <summary>
-        /// Constructore
+        /// Constructor
         /// </summary>
         public GraphQlResult()
         {
@@ -138,5 +140,10 @@ namespace Opc.Ua.Cloud.Library.Client
         /// Node and Cursor combinations (GraphQl Edges)
         /// </summary>
         public List<GraphQlNodeAndCursor<T>> Edges { get; set; } = new List<GraphQlNodeAndCursor<T>>();
+
+        /// <summary>
+        /// Nodes
+        /// </summary>
+        public IEnumerable<T> Nodes => Edges?.Select(e => e.Node);
     }
 }
