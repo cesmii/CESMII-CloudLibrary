@@ -254,11 +254,6 @@ namespace Opc.Ua.Cloud.Library
             try
             {
                 var nodesetIdStr = nodesetId.ToString(CultureInfo.InvariantCulture);
-                var records = _dbContext.LegacyMetadata.Where(md => md.NodesetId == nodesetId);
-                foreach (var record in records)
-                {
-                    _dbContext.LegacyMetadata.Remove(record);
-                }
                 List<CloudLibNodeSetModel> deletedNodeSets = new();
                 await DeleteNodeSetIndexForNodesetAsync(nodesetIdStr, deletedNodeSets).ConfigureAwait(false);
 
@@ -350,10 +345,19 @@ namespace Opc.Ua.Cloud.Library
                     _dbContext.nodeSets
                     .Where(nsm =>
                         _dbContext.nodeModels.Any(nm => nm.NodeSet.Identifier == nsm.Identifier && Regex.IsMatch(nm.DisplayName.FirstOrDefault().Text, keywordRegex, RegexOptions.IgnoreCase))
+                        //|| nsm.Objects.Any(nm => Regex.IsMatch(nm.DisplayName.FirstOrDefault().Text, keywordRegex, RegexOptions.IgnoreCase))
+                        //|| nsm.VariableTypes.Any(nm => Regex.IsMatch(nm.DisplayName.FirstOrDefault().Text, keywordRegex, RegexOptions.IgnoreCase))
+                        //|| nsm.Properties.Any(nm => Regex.IsMatch(nm.DisplayName.FirstOrDefault().Text, keywordRegex, RegexOptions.IgnoreCase))
+                        //|| nsm.DataVariables.Any(nm => Regex.IsMatch(nm.DisplayName.FirstOrDefault().Text, keywordRegex, RegexOptions.IgnoreCase))
+                        //|| nsm.DataTypes.Any(nm => Regex.IsMatch(nm.DisplayName.FirstOrDefault().Text, keywordRegex, RegexOptions.IgnoreCase))
+                        //|| nsm.ReferenceTypes.Any(nm => Regex.IsMatch(nm.DisplayName.FirstOrDefault().Text, keywordRegex, RegexOptions.IgnoreCase))
+                        //|| nsm.Interfaces.Any(nm => Regex.IsMatch(nm.DisplayName.FirstOrDefault().Text, keywordRegex, RegexOptions.IgnoreCase))
+                        //|| nsm.UnknownNodes.Any(nm => Regex.IsMatch(nm.DisplayName.FirstOrDefault().Text, keywordRegex, RegexOptions.IgnoreCase))
+                        //)
                         || _dbContext.NamespaceMetaData.Any(md =>
                             md.NodesetId == nsm.Identifier
                             && EF.Functions.ToTsVector(/*"english", */md.Title + " || " + md.Description/* + " " + string.Join(' ', md.Keywords) + md.Category.Name + md.Contributor.Name*/)
-                               .Matches(keywordTsQuery))
+                                .Matches(keywordTsQuery))
                         //|| _dbContext.Metadata.Any(md => md.NodesetId.ToString() == nsm.Identifier && Regex.IsMatch(md.Value, keywordRegex, RegexOptions.IgnoreCase))
                         );
 #pragma warning restore CA1305 // Specify IFormatProvider
