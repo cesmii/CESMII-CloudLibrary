@@ -50,7 +50,6 @@ namespace Opc.Ua.Cloud.Library
         /// </summary>
         public LocalFileStorage(ILoggerFactory logger, IConfiguration configuration)
         {
-
             _logger = logger.CreateLogger("LocalFileStorage");
             var rootDir = configuration.GetSection("LocalFileStorage")?.GetValue<string>("RootDirectory");
             if (string.IsNullOrEmpty(rootDir))

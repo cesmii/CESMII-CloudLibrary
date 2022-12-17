@@ -112,8 +112,9 @@ namespace Opc.Ua.Cloud.Library
         // Full metadata dbset, use only for Add
         public DbSet<NamespaceMetaDataModel> NamespaceMetaDataWithUnapproved { get; set; }
 
+#if !NOLEGACYMIGRATION
         public DbSet<MetadataModel> LegacyMetadata { get; set; }
-
+#endif
         public DbSet<OrganisationModel> Organisations { get; set; }
         public DbSet<CategoryModel> Categories { get; set; }
 
@@ -161,8 +162,9 @@ namespace Opc.Ua.Cloud.Library
                 .IsTsVectorExpressionIndex("english");
 
             NamespaceMetaDataModel.OnModelCreating(builder);
+#if !NOLEGACYMIGRATION
             builder.Entity<MetadataModel>().HasKey(k => k.Id);
-
+#endif
             DevDbFileStorage.OnModelCreating(builder);
         }
 

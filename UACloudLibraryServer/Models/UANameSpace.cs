@@ -103,7 +103,10 @@ namespace Opc.Ua.Cloud.Library.Models
             SupportedLocales = Array.Empty<string>();
             AdditionalProperties = null;
         }
-
+        public override string ToString()
+        {
+            return $"{Title} {Contributor} {Category}";
+        }
     }
 
     public class UANameSpaceAndNodeSet : UANameSpaceMetadata
@@ -115,6 +118,10 @@ namespace Opc.Ua.Cloud.Library.Models
 
         [Required]
         public Nodeset Nodeset { get; set; }
+        public override string ToString()
+        {
+            return $"{Nodeset?.NamespaceUri} {Nodeset?.Version} {Nodeset?.PublicationDate} {base.ToString()}";
+        }
     }
     public class UANameSpace : UANameSpaceAndNodeSet
     {
@@ -129,7 +136,6 @@ namespace Opc.Ua.Cloud.Library.Models
         /// </summary>
         public DateTime? CreationTime { get; set; }
         public uint NumberOfDownloads { get; set; }
-        //public string ValidationStatus { get; set; }
     }
 
 
