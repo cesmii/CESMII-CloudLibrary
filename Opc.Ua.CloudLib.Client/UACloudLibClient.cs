@@ -311,7 +311,7 @@ namespace Opc.Ua.Cloud.Library.Client
         /// </summary>
         /// <param name="offset"></param>
         /// <param name="limit"></param>
-        /// <returns>List of NameSpace</returns>
+        /// <returns>List of UANameSpace</returns>
         public async Task<List<UANameSpace>> GetConvertedMetadataAsync(int offset, int limit)
         {
             List<UANameSpace> convertedResult = new List<UANameSpace>();
@@ -379,7 +379,7 @@ namespace Opc.Ua.Cloud.Library.Client
         [Obsolete("Use GetNodeSetsAsync instead")]
         public async Task<List<UANameSpace>> GetNameSpacesAsync(int limit = 10, int offset = 0, IEnumerable<WhereExpression> filter = null)
         {
-            IQuery<UANameSpace> nameSpaceQuery = new Query<UANameSpace>("nameSpace")
+            IQuery<UANameSpace> namespaceQuery = new Query<UANameSpace>("namespace")
                 .AddField(h => h.Title)
                 .AddField(
                     h => h.Contributor,
@@ -432,16 +432,16 @@ namespace Opc.Ua.Cloud.Library.Client
                     )
                 ;
 
-            nameSpaceQuery.AddArgument("limit", limit);
-            nameSpaceQuery.AddArgument("offset", offset);
+            namespaceQuery.AddArgument("limit", limit);
+            namespaceQuery.AddArgument("offset", offset);
 
             if (filter != null)
             {
-                nameSpaceQuery.AddArgument("where", WhereExpression.Build(filter));
+                namespaceQuery.AddArgument("where", WhereExpression.Build(filter));
             }
 
             var request = new GraphQLRequest();
-            request.Query = "query{" + nameSpaceQuery.Build() + "}";
+            request.Query = "query{" + namespaceQuery.Build() + "}";
 
             List<UANameSpace> result = new List<UANameSpace>();
             try

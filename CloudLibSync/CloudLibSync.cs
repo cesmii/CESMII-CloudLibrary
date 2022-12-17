@@ -38,16 +38,16 @@ namespace Opc.Ua.CloudLib.Sync
             string? cursor = null;
             do
             {
-                // Get all infomodels
+                // Get all NodeSets
                 nodeSetResult = await sourceClient.GetNodeSetsAsync(after: cursor, first: 50).ConfigureAwait(false);
 
                 foreach (var nodeSetAndCursor in nodeSetResult.Edges)
                 {
-                    // Download each infomodel
+                    // Download each NodeSet
                     var identifier = nodeSetAndCursor.Node.Identifier.ToString(CultureInfo.InvariantCulture);
-                    var uaNameSpace = await sourceClient.DownloadNodesetAsync(identifier).ConfigureAwait(false);
+                    var uaNamespace = await sourceClient.DownloadNodesetAsync(identifier).ConfigureAwait(false);
 
-                    if (uaNameSpace?.Nodeset != null)
+                    if (uaNamespace?.Nodeset != null)
                     {
                         if (!Directory.Exists(localDir))
                         {
@@ -55,11 +55,11 @@ namespace Opc.Ua.CloudLib.Sync
                         }
 
 
-                        var original = JsonConvert.SerializeObject(uaNameSpace, Formatting.Indented);
-                        var namespaceKey = VerifyAndFixupNodeSetMeta(uaNameSpace);
+                        var original = JsonConvert.SerializeObject(uaNamespace, Formatting.Indented);
+                        var namespaceKey = VerifyAndFixupNodeSetMeta(uaNamespace);
                         var fileName = GetFileNameForNamespaceUri(namespaceKey.ModelUri, namespaceKey.PublicationDate);
 
-                        File.WriteAllText(Path.Combine(localDir, $"{fileName}.{identifier}.json"), JsonConvert.SerializeObject(uaNameSpace, Formatting.Indented));
+                        File.WriteAllText(Path.Combine(localDir, $"{fileName}.{identifier}.json"), JsonConvert.SerializeObject(uaNamespace, Formatting.Indented));
 
                         if (namespaceKey.Changed)
                         {
@@ -73,7 +73,7 @@ namespace Opc.Ua.CloudLib.Sync
 
                         if (nodeSetXmlDir != null)
                         {
-                            SaveNodeSetAsXmlFile(uaNameSpace, nodeSetXmlDir);
+                            SaveNodeSetAsXmlFile(uaNamespace, nodeSetXmlDir);
                         }
                     }
                 }
@@ -83,7 +83,7 @@ namespace Opc.Ua.CloudLib.Sync
         }
 
         /// <summary>
-        /// Synchronizes from one cloud lib to another.
+        /// Synchronizes from one Cloud Library to another.
         /// </summary>
         /// <param name="sourceUrl"></param>
         /// <param name="sourceUserName"></param>
@@ -128,14 +128,14 @@ namespace Opc.Ua.CloudLib.Sync
                         )).ToList();
                     foreach (var nodeSet in toSync)
                     {
-                        // Download each infomodel
+                        // Download each NodeSet
                         var identifier = nodeSet.Identifier.ToString(CultureInfo.InvariantCulture);
                         var uaNamespace = await sourceClient.DownloadNodesetAsync(identifier).ConfigureAwait(false);
 
                         try
                         {
                             VerifyAndFixupNodeSetMeta(uaNamespace);
-                            // upload infomodel to target cloud library
+                            // upload NodeSet to target cloud library
                             var response = await targetClient.UploadNodeSetAsync(uaNamespace).ConfigureAwait(false);
                             if (response.Status == System.Net.HttpStatusCode.OK)
                             {
@@ -158,7 +158,7 @@ namespace Opc.Ua.CloudLib.Sync
         }
 
         /// <summary>
-        /// Uploads nodesets from a local directory to a cloud library
+        /// Uploads nodesets from a local directory to a Cloud Library
         /// </summary>
         /// <param name="targetUrl"></param>
         /// <param name="targetUserName"></param>
@@ -231,10 +231,10 @@ namespace Opc.Ua.CloudLib.Sync
             }
         }
 
-        private (string? ModelUri, DateTime? PublicationDate, bool Changed) VerifyAndFixupNodeSetMeta(UANameSpace uaNameSpace)
+        private (string? ModelUri, DateTime? PublicationDate, bool Changed) VerifyAndFixupNodeSetMeta(UANameSpace uaNamespace)
         {
             bool changed = false;
-            var nodeset = uaNameSpace.Nodeset;
+            var nodeset = uaNamespace.Nodeset;
             var namespaceUri = nodeset?.NamespaceUri?.OriginalString;
             var publicationDate = nodeset?.PublicationDate;
 
@@ -273,33 +273,33 @@ namespace Opc.Ua.CloudLib.Sync
                     }
                 }
             }
-            if (uaNameSpace.Nodeset.RequiredModels != null)
+            if (uaNamespace.Nodeset.RequiredModels != null)
             {
-                uaNameSpace.Nodeset.RequiredModels = null;
+                uaNamespace.Nodeset.RequiredModels = null;
             }
-            if (string.IsNullOrEmpty(uaNameSpace.Title))
+            if (string.IsNullOrEmpty(uaNamespace.Title))
             {
-                uaNameSpace.Title = nodeset?.NamespaceUri.OriginalString ?? "none";
+                uaNamespace.Title = nodeset?.NamespaceUri.OriginalString ?? "none";
                 changed = true;
             }
-            if (string.IsNullOrEmpty(uaNameSpace.Description))
+            if (string.IsNullOrEmpty(uaNamespace.Description))
             {
-                uaNameSpace.Description = uaNameSpace.Title;
+                uaNamespace.Description = uaNamespace.Title;
                 changed = true;
             }
-            if (string.IsNullOrEmpty(uaNameSpace.CopyrightText))
+            if (string.IsNullOrEmpty(uaNamespace.CopyrightText))
             {
-                uaNameSpace.CopyrightText = uaNameSpace.Title;
+                uaNamespace.CopyrightText = uaNamespace.Title;
                 changed = true;
             }
-            if (string.IsNullOrEmpty(uaNameSpace.Category?.Name))
+            if (string.IsNullOrEmpty(uaNamespace.Category?.Name))
             {
-                uaNameSpace.Category = new Category { Name = uaNameSpace.Title };
+                uaNamespace.Category = new Category { Name = uaNamespace.Title };
                 changed = true;
             }
-            if (string.IsNullOrEmpty(uaNameSpace.Contributor?.Name))
+            if (string.IsNullOrEmpty(uaNamespace.Contributor?.Name))
             {
-                uaNameSpace.Contributor = new Organisation { Name = uaNameSpace.Title };
+                uaNamespace.Contributor = new Organisation { Name = uaNamespace.Title };
                 changed = true;
             }
 

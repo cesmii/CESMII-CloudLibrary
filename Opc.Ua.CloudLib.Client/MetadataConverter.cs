@@ -51,9 +51,9 @@ namespace Opc.Ua.Cloud.Library.Client
                     string id = item.NodesetID.ToString(CultureInfo.InvariantCulture);
                     if (!nameSpaces.ContainsKey(id))
                     {
-                        var uaNameSpace = new UANameSpace();
-                        uaNameSpace.Nodeset.Identifier = (uint)item.NodesetID;
-                        nameSpaces.Add(id, uaNameSpace);
+                        var uaNamespace = new UANameSpace();
+                        uaNamespace.Nodeset.Identifier = (uint)item.NodesetID;
+                        nameSpaces.Add(id, uaNamespace);
                     }
 
                     ConvertCases(nameSpaces[id], item);
@@ -177,7 +177,7 @@ namespace Opc.Ua.Cloud.Library.Client
         {
             switch (metadata.Name)
             {
-                #region NameSpace Cases
+                #region Namespace Cases
                 case "description":
                     nameSpace.Description = metadata.Value;
                     break;
@@ -204,6 +204,10 @@ namespace Opc.Ua.Cloud.Library.Client
                     break;
                 case "numdownloads":
                     nameSpace.NumberOfDownloads = System.Convert.ToUInt32(metadata.Value, CultureInfo.InvariantCulture);
+                    break;
+                case "validationstatus":
+                    nameSpace.ValidationStatus = metadata.Value;
+                    nameSpace.Nodeset.ValidationStatus = metadata.Value;
                     break;
                 case "nodesettitle":
                     nameSpace.Title = metadata.Value;
@@ -258,9 +262,6 @@ namespace Opc.Ua.Cloud.Library.Client
                     break;
                 case "version":
                     nameSpace.Nodeset.Version = metadata.Value;
-                    break;
-                case "validationstatus":
-                    nameSpace.Nodeset.ValidationStatus = metadata.Value;
                     break;
                 #endregion
                 #region Contributor Cases

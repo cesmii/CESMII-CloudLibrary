@@ -43,7 +43,7 @@ namespace Opc.Ua.Cloud.Library
         UANodesetResult[] FindNodesets(string[] keywords, int? offset, int? limit);
         IQueryable<CloudLibNodeSetModel> GetNodeSets(string identifier = null, string nodeSetUrl = null, DateTime? publicationDate = null, string[] keywords = null);
 
-        Task<string> AddMetaDataAsync(UANameSpace uaNameSpace, UANodeSet nodeSet, uint legacyNodesetHashCode, string userId);
+        Task<string> AddMetaDataAsync(UANameSpace uaNamespace, UANodeSet nodeSet, uint legacyNodesetHashCode, string userId);
 
         Task<uint> IncrementDownloadCountAsync(uint nodesetId);
 
@@ -71,7 +71,7 @@ namespace Opc.Ua.Cloud.Library
         IQueryable<NamespaceMetaDataModel> GetNamespaces();
         int GetNamespaceTotalCount();
 
-        Task<UANameSpace> ApproveNameSpaceAsync(string identifier, ApprovalStatus status, string approvalInformation);
+        Task<UANameSpace> ApproveNamespaceAsync(string identifier, ApprovalStatus status, string approvalInformation);
         IQueryable<CloudLibNodeSetModel> GetNodeSetsPendingApproval();
 
 #if !NOLEGACY

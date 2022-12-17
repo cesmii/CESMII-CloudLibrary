@@ -41,7 +41,9 @@ namespace Opc.Ua.Cloud.Library
     using Opc.Ua.Cloud.Library.Interfaces;
 
     /// <summary>
-    /// Azure storage class
+    /// Database storage class: single store makes some development scenarios easier
+	/// For example: database deletion/recreate leaves DB out of sync with file store)
+	/// Multiple copies collide on file store
     /// </summary>
     public class DevDbFileStorage : IFileStorage
     {

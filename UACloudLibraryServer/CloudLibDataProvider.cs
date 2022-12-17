@@ -170,7 +170,7 @@ namespace Opc.Ua.Cloud.Library
             return nodeModels;
         }
 
-        public async Task<string> AddMetaDataAsync(UANameSpace uaNameSpace, UANodeSet nodeSet, uint legacyNodesetHashCode, string userId)
+        public async Task<string> AddMetaDataAsync(UANameSpace uaNamespace, UANodeSet nodeSet, uint legacyNodesetHashCode, string userId)
         {
             string message = "Internal error: transaction not executed";
             try
@@ -182,7 +182,7 @@ namespace Opc.Ua.Cloud.Library
                     message = null;
 
                     // delete any existing records for this nodeset in the database
-                    if (!await DeleteAllRecordsForNodesetAsync(uaNameSpace.Nodeset.Identifier).ConfigureAwait(false))
+                    if (!await DeleteAllRecordsForNodesetAsync(uaNamespace.Nodeset.Identifier).ConfigureAwait(false))
                     {
                         message = "Error: Could not delete existing records for nodeset!";
                         return;
@@ -195,7 +195,7 @@ namespace Opc.Ua.Cloud.Library
                         return;
                     }
 
-                    var nodeSetModel = await NodeSetModelIndexer.CreateNodeSetModelFromNodeSetAsync(_dbContext, nodeSet, uaNameSpace.Nodeset.Identifier.ToString(CultureInfo.InvariantCulture), userId).ConfigureAwait(false);
+                    var nodeSetModel = await NodeSetModelIndexer.CreateNodeSetModelFromNodeSetAsync(_dbContext, nodeSet, uaNamespace.Nodeset.Identifier.ToString(CultureInfo.InvariantCulture), userId).ConfigureAwait(false);
                     var existingModel = await _dbContext.nodeSetsWithUnapproved.FindAsync(nodeSetModel.ModelUri, nodeSetModel.PublicationDate).ConfigureAwait(false);
                     if (existingModel != null)
                     {
@@ -208,15 +208,15 @@ namespace Opc.Ua.Cloud.Library
                     }
 
                     // TODO validate that user has permission for this organisation
-                    OrganisationModel contributor = uaNameSpace.Contributor.Name != null ?
-                        await _dbContext.Organisations.FirstOrDefaultAsync(c => c.Name == uaNameSpace.Contributor.Name).ConfigureAwait(false)
+                    OrganisationModel contributor = uaNamespace.Contributor.Name != null ?
+                        await _dbContext.Organisations.FirstOrDefaultAsync(c => c.Name == uaNamespace.Contributor.Name).ConfigureAwait(false)
                         : null;
-                    CategoryModel category = uaNameSpace.Category.Name != null ?
-                        await _dbContext.Categories.FirstOrDefaultAsync(c => c.Name == uaNameSpace.Category.Name).ConfigureAwait(false)
+                    CategoryModel category = uaNamespace.Category.Name != null ?
+                        await _dbContext.Categories.FirstOrDefaultAsync(c => c.Name == uaNamespace.Category.Name).ConfigureAwait(false)
                         : null;
 
                     var nameSpaceModel = new NamespaceMetaDataModel();
-                    MapToEntity(ref nameSpaceModel, uaNameSpace, nodeSetModel, contributor, category);
+                    MapToEntity(ref nameSpaceModel, uaNamespace, nodeSetModel, contributor, category);
 
                     nodeSetModel.ValidationStatus = ValidationStatus.Parsed;
                     nodeSetModel.ValidationStatusInfo = null;
@@ -442,7 +442,7 @@ namespace Opc.Ua.Cloud.Library
             return _dbContext.NamespaceMetaData.Count();
         }
 
-        public async Task<UANameSpace> ApproveNameSpaceAsync(string identifier, ApprovalStatus status, string approvalInformation)
+        public async Task<UANameSpace> ApproveNamespaceAsync(string identifier, ApprovalStatus status, string approvalInformation)
         {
             var nodeSet = await _dbContext.NamespaceMetaDataWithUnapproved.Where(n => n.NodesetId == identifier).FirstOrDefaultAsync();
             if (nodeSet == null) return null;
@@ -469,46 +469,46 @@ namespace Opc.Ua.Cloud.Library
             return _dbContext.Organisations.AsQueryable();
         }
 
-        private void MapToEntity(ref NamespaceMetaDataModel entity, UANameSpace uaNameSpace, CloudLibNodeSetModel nodeSetModel, OrganisationModel contributor, CategoryModel category)
+        private void MapToEntity(ref NamespaceMetaDataModel entity, UANameSpace uaNamespace, CloudLibNodeSetModel nodeSetModel, OrganisationModel contributor, CategoryModel category)
         {
-            var identifier = nodeSetModel != null ? nodeSetModel.Identifier : uaNameSpace.Nodeset.Identifier.ToString(CultureInfo.InvariantCulture);
+            var identifier = nodeSetModel != null ? nodeSetModel.Identifier : uaNamespace.Nodeset.Identifier.ToString(CultureInfo.InvariantCulture);
             entity.NodesetId = identifier;
             entity.NodeSet = nodeSetModel;
-            entity.Title = uaNameSpace.Title;
+            entity.Title = uaNamespace.Title;
             entity.ContributorId = contributor?.Id ?? 0;
             entity.Contributor = contributor ?? new OrganisationModel {
-                Name = uaNameSpace.Contributor.Name,
-                Description = uaNameSpace.Contributor.Description,
-                ContactEmail = uaNameSpace.Contributor.ContactEmail,
-                LogoUrl = uaNameSpace.Contributor.LogoUrl?.ToString(),
-                Website = uaNameSpace.Contributor.Website?.ToString(),
+                Name = uaNamespace.Contributor.Name,
+                Description = uaNamespace.Contributor.Description,
+                ContactEmail = uaNamespace.Contributor.ContactEmail,
+                LogoUrl = uaNamespace.Contributor.LogoUrl?.ToString(),
+                Website = uaNamespace.Contributor.Website?.ToString(),
             };
-            var licenseExpression = uaNameSpace.License switch {
+            var licenseExpression = uaNamespace.License switch {
                 "0" => "MIT",
                 "1" or "ApacheLicense20" => "Apache-2.0",
                 "2" => "Custom",
-                _ => uaNameSpace.License,
+                _ => uaNamespace.License,
             };
             // TODO Validate license Expression
             entity.License = licenseExpression;
-            entity.CopyrightText = uaNameSpace.CopyrightText;
-            entity.Description = uaNameSpace.Description;
+            entity.CopyrightText = uaNamespace.CopyrightText;
+            entity.Description = uaNamespace.Description;
             entity.CategoryId = category?.Id ?? 0;
             entity.Category = category ?? new CategoryModel {
-                Name = uaNameSpace.Category.Name,
-                Description = uaNameSpace.Category.Description,
-                IconUrl = uaNameSpace.Category.IconUrl?.ToString(),
+                Name = uaNamespace.Category.Name,
+                Description = uaNamespace.Category.Description,
+                IconUrl = uaNamespace.Category.IconUrl?.ToString(),
             };
-            entity.DocumentationUrl = uaNameSpace.DocumentationUrl?.ToString();
-            entity.IconUrl = uaNameSpace.IconUrl?.ToString();
-            entity.LicenseUrl = uaNameSpace.LicenseUrl?.ToString();
-            entity.Keywords = uaNameSpace.Keywords;
-            entity.PurchasingInformationUrl = uaNameSpace.PurchasingInformationUrl?.ToString();
-            entity.ReleaseNotesUrl = uaNameSpace.ReleaseNotesUrl?.ToString();
-            entity.TestSpecificationUrl = uaNameSpace.TestSpecificationUrl?.ToString();
-            entity.SupportedLocales = uaNameSpace.SupportedLocales;
-            entity.NumberOfDownloads = uaNameSpace.NumberOfDownloads;
-            entity.AdditionalProperties = uaNameSpace.AdditionalProperties?.Select(p => new AdditionalPropertyModel { NodeSetId = identifier, Name = p.Name, Value = p.Value })?.ToList();
+            entity.DocumentationUrl = uaNamespace.DocumentationUrl?.ToString();
+            entity.IconUrl = uaNamespace.IconUrl?.ToString();
+            entity.LicenseUrl = uaNamespace.LicenseUrl?.ToString();
+            entity.Keywords = uaNamespace.Keywords;
+            entity.PurchasingInformationUrl = uaNamespace.PurchasingInformationUrl?.ToString();
+            entity.ReleaseNotesUrl = uaNamespace.ReleaseNotesUrl?.ToString();
+            entity.TestSpecificationUrl = uaNamespace.TestSpecificationUrl?.ToString();
+            entity.SupportedLocales = uaNamespace.SupportedLocales;
+            entity.NumberOfDownloads = uaNamespace.NumberOfDownloads;
+            entity.AdditionalProperties = uaNamespace.AdditionalProperties?.Select(p => new AdditionalPropertyModel { NodeSetId = identifier, Name = p.Name, Value = p.Value })?.ToList();
         }
 
         private void MapToNamespace(UANameSpace uaNamespace, NamespaceMetaDataModel model)

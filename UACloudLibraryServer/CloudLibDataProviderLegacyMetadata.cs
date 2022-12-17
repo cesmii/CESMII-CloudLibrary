@@ -42,8 +42,8 @@ namespace Opc.Ua.Cloud.Library
             _logger.LogInformation($"Migrating legacy metadata for {missingLegacyMetaDataIds.Count} nodesets.");
             foreach (var legacyNodesetId in missingLegacyMetaDataIds)
             {
-                var uaNameSpace = await RetrieveAllLegacyMetadataAsync((uint)legacyNodesetId).ConfigureAwait(false);
-                if (uaNameSpace == null)
+                var uaNamespace = await RetrieveAllLegacyMetadataAsync((uint)legacyNodesetId).ConfigureAwait(false);
+                if (uaNamespace == null)
                 {
                     legacyMigrationError = true;
                     _logger.LogError($"Legacy Metadata for nodeset id {legacyNodesetId} could not be read.");
@@ -58,7 +58,7 @@ namespace Opc.Ua.Cloud.Library
                     {
                         _logger.LogDebug($"Parsing missing nodeset for legacy metadata migration {legacyNodesetId}");
                         var uaNodeSet = InfoModelController.ReadUANodeSet(nodeSetXml);
-                        var message = await AddMetaDataAsync(uaNameSpace, uaNodeSet, 0, null).ConfigureAwait(false);
+                        var message = await AddMetaDataAsync(uaNamespace, uaNodeSet, 0, null).ConfigureAwait(false);
                         if (!string.IsNullOrEmpty(message))
                         {
                             legacyMigrationError = true;

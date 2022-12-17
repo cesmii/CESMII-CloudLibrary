@@ -309,7 +309,7 @@ namespace Opc.Ua.Cloud.Library
                     nodeSetModel = await _dbContext.nodeSetsWithUnapproved.FindAsync(modelUri, publicationDate).ConfigureAwait(false);
                     if (nodeSetModel == null)
                     {
-                        _logger.LogWarning($"Nodeset model '{identifier}' '{modelUri}' '{publicationDate}' not found during indexing.");
+                        _logger.LogWarning($"NodeSet model '{identifier}' '{modelUri}' '{publicationDate}' not found during indexing.");
                         return false;
                     }
                     (ValidationStatus Status, string Info) previousValidationStatus = (nodeSetModel.ValidationStatus, nodeSetModel.ValidationStatusInfo);
@@ -351,7 +351,9 @@ namespace Opc.Ua.Cloud.Library
                 try
                 {
                     var cloudLibProvider = (CloudLibDataProvider)_database;
+#if !NOLEGACYMIGRATION
                     await cloudLibProvider.MigrateLegacyMetadataAsync(_storage).ConfigureAwait(false);
+#endif
                 }
                 catch (Exception ex)
                 {

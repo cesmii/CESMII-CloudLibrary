@@ -67,7 +67,7 @@ namespace Opc.Ua.Cloud.Library.Models
         public System.DateTime? LegacyPublicationDate { get => Nodeset?.PublicationDate; }
 
         [JsonProperty(PropertyName = "nodesetNamespaceUri")]
-        public string LegacyNameSpaceUri { get => Nodeset?.NamespaceUri?.OriginalString; }
+        public string LegacyNamespaceUri { get => Nodeset?.NamespaceUri?.OriginalString; }
 
         [JsonProperty(PropertyName = "requiredNodesets")]
         public List<CloudLibRequiredModelInfo> LegacyRequiredNodesets { get => Nodeset?.RequiredModels; }

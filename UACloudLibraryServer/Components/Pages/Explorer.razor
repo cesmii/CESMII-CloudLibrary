@@ -35,7 +35,7 @@
                                     @if (i < Result.Count)
                                     {
                                         var item = Result[i];
-                                        <div class="card h-100" >
+                                        <div class="card h-100">
                                             <div class="card-header">
                                                 @if (!string.IsNullOrEmpty(@item.Category.Name))
                                                 {
@@ -190,15 +190,15 @@
 
         TotalCount = dp.GetNamespaceTotalCount();
         Result = await dp.GetNamespaces()
-            .OrderBy(md => md.Category.Name) 
+            .OrderBy(md => md.Category.Name)
             .Skip((CurrentPage - 1) * PAGE_SIZE).Take(PAGE_SIZE)
             .ToListAsync().ConfigureAwait(true);
         AllPages = (int)Math.Ceiling((decimal)this.TotalCount / PAGE_SIZE);
         Loading = false;
-        await Task.CompletedTask;
+
         StateHasChanged();
     }
-    }
+}
 
 
 <style>
