@@ -45,21 +45,6 @@ namespace Opc.Ua.Cloud.Library.Models
         public string LegacyOrgName { get => Contributor?.Name; }
 
         // TODO enum vs. string & compat
-        //[JsonProperty(PropertyName = "license")]
-        //public new string License {
-        //    get => base.License.ToString();
-        //    set {
-        //        if (Enum.TryParse<License>(value, out var licenseEnum))
-        //        {
-        //            base.License = licenseEnum;
-        //        }
-        //        else
-        //        {
-        //            base.License = 0;
-        //        }
-        //    }
-        //}
-
         [JsonProperty(PropertyName = "version")]
         public string LegacyVersion { get => Nodeset?.Version; }
 
@@ -67,7 +52,10 @@ namespace Opc.Ua.Cloud.Library.Models
         public System.DateTime? LegacyPublicationDate { get => Nodeset?.PublicationDate; }
 
         [JsonProperty(PropertyName = "nodesetNamespaceUri")]
-        public string LegacyNamespaceUri { get => Nodeset?.NamespaceUri?.OriginalString; }
+        public string LegacyNamespaceUri
+        {
+            get => Nodeset?.NamespaceUri?.OriginalString;
+        }
 
         [JsonProperty(PropertyName = "requiredNodesets")]
         public List<CloudLibRequiredModelInfo> LegacyRequiredNodesets { get => Nodeset?.RequiredModels; }
