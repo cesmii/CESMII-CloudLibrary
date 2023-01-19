@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Opc.Ua.Cloud.Library;
@@ -12,9 +13,10 @@ using Opc.Ua.Cloud.Library;
 namespace Opc.Ua.Cloud.Library
 {
     [DbContext(typeof(AppDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20221215175608_metadatacleanup")]
+    partial class metadatacleanup
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -55,11 +57,6 @@ namespace Opc.Ua.Cloud.Library
                     .HasColumnType("text");
 
                 b.HasKey("NodeId", "NodeSetModelUri", "NodeSetPublicationDate");
-
-                b.HasIndex("BrowseName")
-                    .HasAnnotation("Npgsql:TsVectorConfig", "english");
-
-                NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("BrowseName"), "GIN");
 
                 b.HasIndex("NodeSetModelUri", "NodeSetPublicationDate");
 

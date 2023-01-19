@@ -73,15 +73,22 @@ namespace Opc.Ua.Cloud.Library
             services.AddDbContext<AppDbContext>(ServiceLifetime.Transient);
 
             services.AddDefaultIdentity<IdentityUser>(options =>
-                    //require confirmation mail if sendgrid API Key is set
-                    options.SignIn.RequireConfirmedAccount = !string.IsNullOrEmpty(Configuration["SendGridAPIKey"])
+                    //require confirmation mail if email sender API Key is set
+                    options.SignIn.RequireConfirmedAccount = !string.IsNullOrEmpty(Configuration["EmailSenderAPIKey"])
                     ).AddEntityFrameworkStores<AppDbContext>();
 
             services.AddScoped<IUserService, UserService>();
 
             services.AddTransient<IDatabase, CloudLibDataProvider>();
 
-            services.AddTransient<IEmailSender, EmailSender>();
+            if (!string.IsNullOrEmpty(Configuration["UseSendGridEmailSender"]))
+            {
+                services.AddTransient<IEmailSender, SendGridEmailSender>();
+            }
+            else
+            {
+                services.AddTransient<IEmailSender, PostmarkEmailSender>();
+            }
 
             services.AddLogging(builder => builder.AddConsole());
 
@@ -143,6 +150,7 @@ namespace Opc.Ua.Cloud.Library
                     services.AddSingleton<IFileStorage, AWSFileStorage>();
                     break;
                 case "GCP": services.AddSingleton<IFileStorage, GCPFileStorage>(); break;
+                case "DevDB": services.AddScoped<IFileStorage, DevDbFileStorage>(); break;
                 default:
                 {
                     services.AddSingleton<IFileStorage, LocalFileStorage>();
@@ -174,6 +182,7 @@ namespace Opc.Ua.Cloud.Library
                 .AddFiltering()
                 .AddSorting()
                 .AddQueryType<QueryModel>()
+                .AddMutationType<MutationModel>()
                 .AddType<CloudLibNodeSetModelType>()
                 .BindRuntimeType<UInt32, HotChocolate.Types.UnsignedIntType>()
                 .BindRuntimeType<UInt16, HotChocolate.Types.UnsignedShortType>();
