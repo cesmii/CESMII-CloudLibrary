@@ -7,11 +7,13 @@ using System.Linq.Expressions;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using CESMII.OpcUa.NodeSetModel;
+using Google.Apis.Util;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Logging;
 using NpgsqlTypes;
 using Opc.Ua.Cloud.Library.DbContextModels;
+using Opc.Ua.Cloud.Library.Interfaces;
 using Opc.Ua.Cloud.Library.Models;
 using Opc.Ua.Export;
 
@@ -20,11 +22,13 @@ namespace Opc.Ua.Cloud.Library
     public partial class CloudLibDataProvider : IDatabase
     {
         private readonly AppDbContext _dbContext = null;
+        private readonly IFileStorage _storage;
         private readonly ILogger _logger;
 
-        public CloudLibDataProvider(AppDbContext context, ILoggerFactory logger)
+        public CloudLibDataProvider(AppDbContext context, ILoggerFactory logger, IFileStorage storage)
         {
             _dbContext = context;
+            _storage = storage;
             _logger = logger.CreateLogger("CloudLibDataProvider");
 
         }
@@ -311,7 +315,7 @@ namespace Opc.Ua.Cloud.Library
             UANameSpace nameSpace = new();
             try
             {
-                var namespaceModel = await _dbContext.NamespaceMetaData
+                var namespaceModel = await _dbContext.NamespaceMetaDataWithUnapproved
                     .Where(md => md.NodesetId == nodesetId.ToString())
                     .Include(md => md.NodeSet)
                     .FirstOrDefaultAsync().ConfigureAwait(false);
@@ -442,14 +446,69 @@ namespace Opc.Ua.Cloud.Library
             return _dbContext.NamespaceMetaData.Count();
         }
 
-        public async Task<UANameSpace> ApproveNamespaceAsync(string identifier, ApprovalStatus status, string approvalInformation)
+        public async Task<UANameSpace> ApproveNamespaceAsync(string identifier, ApprovalStatus status, string approvalInformation, List<UAProperty> additionalProperties)
         {
-            var nodeSet = await _dbContext.NamespaceMetaDataWithUnapproved.Where(n => n.NodesetId == identifier).FirstOrDefaultAsync();
-            if (nodeSet == null) return null;
+            var nodeSetMeta = await _dbContext.NamespaceMetaDataWithUnapproved.Where(n => n.NodesetId == identifier).FirstOrDefaultAsync();
+            if (nodeSetMeta == null) return null;
 
-            _dbContext.Attach(nodeSet);
-            nodeSet.ApprovalStatus = status;
-            nodeSet.ApprovalInformation = approvalInformation;
+            nodeSetMeta.ApprovalStatus = status;
+            nodeSetMeta.ApprovalInformation = approvalInformation;
+
+            if (status == ApprovalStatus.Canceled)
+            {
+                try
+                {
+                    await _storage.DeleteFileAsync(nodeSetMeta.NodesetId).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning($"Failed to delete file on Approval cancelation for {nodeSetMeta.NodesetId}: {ex.Message}");
+                }
+
+                if (!await DeleteAllRecordsForNodesetAsync(uint.Parse(nodeSetMeta.NodesetId, CultureInfo.InvariantCulture)))
+                {
+                    _logger.LogWarning($"Failed to delete records on Approval cancelation for {nodeSetMeta.NodesetId}");
+                    return null;
+                }
+                UANameSpace nameSpace = new();
+                try
+                {
+                    MapToNamespace(nameSpace, nodeSetMeta);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex.Message);
+                }
+                return nameSpace;
+
+            }
+            _dbContext.Attach(nodeSetMeta);
+            if (additionalProperties != null)
+            {
+                foreach (var prop in additionalProperties)
+                {
+                    if (string.IsNullOrEmpty(prop.Value))
+                    {
+                        nodeSetMeta.AdditionalProperties.RemoveAll(p => p.Name == prop.Name);
+                    }
+                    else
+                    {
+                        var existingProp = nodeSetMeta.AdditionalProperties.FirstOrDefault(p => p.Name == prop.Name);
+                        if (existingProp != null)
+                        {
+                            existingProp.Value = prop.Value;
+                        }
+                        else
+                        {
+                            var newProp = new AdditionalPropertyModel {
+                                Name = prop.Name,
+                                Value = prop.Value,
+                            };
+                            nodeSetMeta.AdditionalProperties.Add(newProp);
+                        }
+                    }
+                }
+            }
             await _dbContext.SaveChangesAsync();
             return await RetrieveAllMetadataAsync(uint.Parse(identifier, CultureInfo.InvariantCulture)).ConfigureAwait(false);
         }
@@ -509,6 +568,7 @@ namespace Opc.Ua.Cloud.Library
             entity.SupportedLocales = uaNamespace.SupportedLocales;
             entity.NumberOfDownloads = uaNamespace.NumberOfDownloads;
             entity.AdditionalProperties = uaNamespace.AdditionalProperties?.Select(p => new AdditionalPropertyModel { NodeSetId = identifier, Name = p.Name, Value = p.Value })?.ToList();
+            entity.ApprovalStatus = ApprovalStatus.Pending;
         }
 
         private void MapToNamespace(UANameSpace uaNamespace, NamespaceMetaDataModel model)
@@ -522,11 +582,25 @@ namespace Opc.Ua.Cloud.Library
                 MapToNodeSet(uaNamespace.Nodeset, model.NodeSet);
             }
             uaNamespace.Title = model.Title;
-            MapToOrganisation(uaNamespace.Contributor, model.Contributor);
+            if (model.Contributor == null)
+            {
+                uaNamespace.Contributor = null;
+            }
+            else
+            {
+                MapToOrganisation(uaNamespace.Contributor, model.Contributor);
+            }
             uaNamespace.License = model.License;
             uaNamespace.CopyrightText = model.CopyrightText;
             uaNamespace.Description = model.Description;
-            MapToCategory(uaNamespace.Category, model.Category);
+            if (model.Category == null)
+            {
+                uaNamespace.Category = null;
+            }
+            else
+            {
+                MapToCategory(uaNamespace.Category, model.Category);
+            }
             uaNamespace.DocumentationUrl = model.DocumentationUrl != null ? new Uri(model.DocumentationUrl) : null;
             uaNamespace.IconUrl = model.IconUrl != null ? new Uri(model.IconUrl) : null;
             uaNamespace.LicenseUrl = model.LicenseUrl != null ? new Uri(model.LicenseUrl) : null;
@@ -536,7 +610,7 @@ namespace Opc.Ua.Cloud.Library
             uaNamespace.TestSpecificationUrl = model.TestSpecificationUrl != null ? new Uri(model.TestSpecificationUrl) : null;
             uaNamespace.SupportedLocales = model.SupportedLocales;
             uaNamespace.NumberOfDownloads = model.NumberOfDownloads;
-            uaNamespace.AdditionalProperties = model.AdditionalProperties.Select(p => new UAProperty { Name = p.Name, Value = p.Value }).ToArray();
+            uaNamespace.AdditionalProperties = model.AdditionalProperties?.Select(p => new UAProperty { Name = p.Name, Value = p.Value })?.ToArray();
         }
 
         private void MapToCategory(Category category, CategoryModel model)

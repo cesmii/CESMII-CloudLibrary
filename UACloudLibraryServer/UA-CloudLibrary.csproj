@@ -7,7 +7,7 @@
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <DockerfileContext>./..</DockerfileContext>
     <DockerComposeProjectPath>..\docker-compose.dcproj</DockerComposeProjectPath>
-    <DefineConstants>$(DEFINECONSTANTS);NOLEGACY</DefineConstants>
+    <DefineConstants>$(DEFINECONSTANTS);AZUREAD;NOLEGACY</DefineConstants>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(RunConfiguration)' == 'UA_CloudLibrary' " />
@@ -40,14 +40,15 @@
     <PackageReference Include="Azure.Storage.Blobs" Version="12.14.0" />
         <PackageReference Include="Google.Cloud.Storage.V1" Version="4.1.0" />
         <PackageReference Include="Google.Cloud.AspNetCore.DataProtection.Storage" Version="1.0.0-alpha03" />
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.AzureAD.UI" Version="6.0.11" />
   </ItemGroup>    
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="6.0.10" />
-    <PackageReference Include="HotChocolate" Version="12.15.0" />
-    <PackageReference Include="HotChocolate.Data" Version="12.15.0" />
-    <PackageReference Include="HotChocolate.Types.Scalars" Version="12.15.0" />
-    <PackageReference Include="HotChocolate.AspNetCore" Version="12.15.0" />
-    <PackageReference Include="HotChocolate.AspNetCore.Authorization" Version="12.15.0" />
+    <PackageReference Include="HotChocolate" Version="13.0.2" />
+    <PackageReference Include="HotChocolate.Data" Version="13.0.2" />
+    <PackageReference Include="HotChocolate.Types.Scalars" Version="13.0.2" />
+    <PackageReference Include="HotChocolate.AspNetCore" Version="13.0.2" />
+    <PackageReference Include="HotChocolate.AspNetCore.Authorization" Version="13.0.2" />
     <PackageReference Include="CESMII.OpcUa.NodeSetImporter" Version="1.0.4" />
     <PackageReference Include="CESMII.OpcUa.NodeSetModel.EF" Version="1.0.4" />
     <PackageReference Include="CESMII.OpcUa.NodeSetModel.Factory.Opc" Version="1.0.4" />
@@ -79,8 +80,11 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
     <PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="6.4.0" />
     <PackageReference Include="Swashbuckle.AspNetCore.Newtonsoft" Version="6.4.0" />
+    <PackageReference Include="Microsoft.Identity.Web" Version="1.25.5" />
+    <PackageReference Include="Microsoft.Identity.Web.UI" Version="1.25.5" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Update="Nerdbank.GitVersioning" Version="3.5.113" />
   </ItemGroup>
+  <ProjectExtensions><VisualStudio><UserProperties appsettings_1development_1json__JsonSchema="https://github.com/fbecart/zinoma/releases/latest/download/zinoma-schema.json" /></VisualStudio></ProjectExtensions>
 </Project>

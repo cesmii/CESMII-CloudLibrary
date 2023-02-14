@@ -30,23 +30,35 @@
 namespace Opc.Ua.Cloud.Library
 {
     using System;
+    using System.Collections.Generic;
+    using System.Data;
     using System.IO;
+    using System.Linq;
+    using System.Security.Claims;
+    using System.Threading.Tasks;
     using Amazon.S3;
     using GraphQL.Server.Ui.Playground;
     using HotChocolate.AspNetCore;
+    using HotChocolate.Data;
     using Microsoft.AspNetCore.Authentication;
+    using Microsoft.AspNetCore.Authentication.AzureAD.UI;
+    using Microsoft.AspNetCore.Authentication.Cookies;
+    using Microsoft.AspNetCore.Authentication.OpenIdConnect;
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.DataProtection;
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Identity;
     using Microsoft.AspNetCore.Identity.UI.Services;
+    using Microsoft.AspNetCore.Mvc.Authorization;
     using Microsoft.AspNetCore.Server.Kestrel.Core;
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
+    using Microsoft.Identity.Web;
+    using Microsoft.Identity.Web.UI;
     using Microsoft.OpenApi.Models;
     using Opc.Ua.Cloud.Library.Interfaces;
 
@@ -67,18 +79,33 @@ namespace Opc.Ua.Cloud.Library
         {
             services.AddControllersWithViews().AddNewtonsoftJson();
 
-            services.AddRazorPages();
+            services.AddRazorPages()
+#if AZUREAD
+                .AddMvcOptions(options =>
+                {
+                    var policy = new AuthorizationPolicyBuilder()
+                                     .AddAuthenticationSchemes(OpenIdConnectDefaults.AuthenticationScheme)
+                                     .RequireAuthenticatedUser()
+                                     .Build();
+                    //options.Filters.Add(new AuthorizeFilter(policy));
+                })
+                .AddMicrosoftIdentityUI()
+#endif
+            ;
 
             // Setup database context for ASP.NetCore Identity Scaffolding
             services.AddDbContext<AppDbContext>(ServiceLifetime.Transient);
+#if true // !AZUREAD
 
             services.AddDefaultIdentity<IdentityUser>(options =>
                     //require confirmation mail if email sender API Key is set
                     options.SignIn.RequireConfirmedAccount = !string.IsNullOrEmpty(Configuration["EmailSenderAPIKey"])
-                    ).AddEntityFrameworkStores<AppDbContext>();
+                    )
+                .AddRoles<IdentityRole>()
+                .AddEntityFrameworkStores<AppDbContext>();
 
             services.AddScoped<IUserService, UserService>();
-
+#endif
             services.AddTransient<IDatabase, CloudLibDataProvider>();
 
             if (!string.IsNullOrEmpty(Configuration["UseSendGridEmailSender"]))
@@ -92,10 +119,56 @@ namespace Opc.Ua.Cloud.Library
 
             services.AddLogging(builder => builder.AddConsole());
 
+#if AZUREAD
+
+            //#pragma warning disable CS0618 // Type or member is obsolete
+            //            services.AddAuthentication(AzureADDefaults.AuthenticationScheme)
+            //                .AddAzureAD(options => Configuration.Bind("AzureAdSettings", options));
+
+            //            services.Configure<OpenIdConnectOptions>(AzureADDefaults.OpenIdScheme, options => {
+            //                options.SignInScheme = IdentityConstants.ExternalScheme;
+            //            });
+            //#pragma warning restore CS0618 // Type or member is obsolete
+
+
+            //services.AddAuthentication()
+            //    .AddMicrosoftIdentityWebApp(Configuration, "AzureAdSettings", OpenIdConnectDefaults.AuthenticationScheme, displayName: "Azure AD");
+
+            services.AddAuthentication()
+                .AddMicrosoftIdentityWebApp(options => {
+                    Configuration.Bind("AzureAdSettings", options);
+                },
+                cookieOptions => {
+                    cookieOptions.Events.OnSignedIn += (ctx) => {
+                        return OnSignedIn(ctx);
+                    };
+                }, displayName: "Azure AD")
+                //.EnableTokenAcquisitionToCallDownstreamApi()
+                ;
+
+
+            //services.AddAuthentication("AzureAd")
+            //    .AddMicrosoftIdentityWebApi(Configuration, "AzureAdSettings", "AzureAd")
+            //    ;
+#endif
+            //services.AddAuthentication()
+            //    .AddCookie("Identity.External", options => {
+            //        options.ForwardDefault = "Cookies";
+            //    });
             services.AddAuthentication()
                 .AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>("BasicAuthentication", null);
 
-            services.AddAuthorization();
+            services.AddAuthorization(options => {
+                options.AddPolicy("ApprovalPolicy", policy => policy.RequireRole("Administrator"));
+                options.AddPolicy("UserAdministrationPolicy", policy => policy.RequireRole("Administrator"));
+            });
+
+            //services
+            //        .AddOptions()
+            //        .PostConfigureAll<OpenIdConnectOptions>(o => {
+            //            o.SignInScheme = IdentityConstants.ExternalScheme;
+            //            o.ClaimActions.Add(new ClaimMapper());
+            //        });
 
             services.AddSwaggerGen(options => {
                 options.SwaggerDoc("v1", new OpenApiInfo {
@@ -179,13 +252,18 @@ namespace Opc.Ua.Cloud.Library
                     DefaultPageSize = 100,
                     MaxPageSize = 100,
                 })
-                .AddFiltering()
+                .AddFiltering(fd => {
+                    fd.AddDefaults().BindRuntimeType<UInt32, UnsignedIntOperationFilterInputType>();
+                    fd.AddDefaults().BindRuntimeType<UInt32?, UnsignedIntOperationFilterInputType>();
+                    fd.AddDefaults().BindRuntimeType<UInt16?, UnsignedShortOperationFilterInputType>();
+                })
                 .AddSorting()
                 .AddQueryType<QueryModel>()
                 .AddMutationType<MutationModel>()
                 .AddType<CloudLibNodeSetModelType>()
                 .BindRuntimeType<UInt32, HotChocolate.Types.UnsignedIntType>()
-                .BindRuntimeType<UInt16, HotChocolate.Types.UnsignedShortType>();
+                .BindRuntimeType<UInt16, HotChocolate.Types.UnsignedShortType>()
+                ;
 
             services.AddScoped<NodeSetModelIndexer>();
             services.AddScoped<NodeSetModelIndexerFactory>();
@@ -199,6 +277,49 @@ namespace Opc.Ua.Cloud.Library
             });
 
             services.AddServerSideBlazor();
+        }
+
+        private static async Task OnSignedIn(CookieSignedInContext ctx)
+        {
+            var userManager = ctx.HttpContext.RequestServices.GetService<UserManager<IdentityUser>>();
+            var signInManager = ctx.HttpContext.RequestServices.GetService<SignInManager<IdentityUser>>();
+
+            var id = ctx.Principal.FindFirstValue("http://schemas.microsoft.com/identity/claims/objectidentifier");
+            var user = await userManager.FindByIdAsync(id);
+            IdentityResult result;
+            if (user == null)
+            {
+                user = new IdentityUser {
+                    Id = id,
+                    UserName = ctx.Principal.GetDisplayName(),
+                };
+                result = await userManager.CreateAsync(user);
+                if (!result.Succeeded)
+                {
+                    return;
+                }
+            }
+            await UpdateUserRoles(ctx.Principal, userManager, user);
+            await signInManager.SignInAsync(user, isPersistent: false);
+        }
+
+        private static async Task UpdateUserRoles(ClaimsPrincipal principal, UserManager<IdentityUser> userManager, IdentityUser user)
+        {
+            List<string> roles = new();
+            foreach (var claim in principal.Claims)
+            {
+                if (claim.Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/role")
+                {
+                    roles.Add(claim.Value);
+                }
+            }
+            var currentRoles = await userManager.GetRolesAsync(user);
+            var rolesToRemove = currentRoles.Except(roles);
+            if (rolesToRemove.Any())
+            {
+                await userManager.RemoveFromRolesAsync(user, rolesToRemove);
+            }
+            await userManager.AddToRolesAsync(user, roles.Except(currentRoles));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
