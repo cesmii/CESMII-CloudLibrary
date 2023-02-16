@@ -113,7 +113,8 @@ namespace Opc.Ua.Cloud.Library.DbContextModels
             builder.Entity<NamespaceMetaDataModel>()
                 .HasIndex(md => new { md.Title, md.Description, /*md.Keywords, md.Category.Name, md.Contributor*/ })
                 .HasMethod("GIN")
-                .IsTsVectorExpressionIndex("english");
+                .IsTsVectorExpressionIndex("english")
+                ;
         }
     }
 

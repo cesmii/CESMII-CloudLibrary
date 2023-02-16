@@ -7,7 +7,6 @@ using System.Linq.Expressions;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using CESMII.OpcUa.NodeSetModel;
-using Google.Apis.Util;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Logging;
@@ -35,7 +34,7 @@ namespace Opc.Ua.Cloud.Library
 
         public IQueryable<CloudLibNodeSetModel> GetNodeSets(
             string identifier = null,
-            string nodeSetUrl = null,
+            string modelUri = null,
             DateTime? publicationDate = null,
             string[] keywords = null)
         {
@@ -43,7 +42,7 @@ namespace Opc.Ua.Cloud.Library
             IQueryable<CloudLibNodeSetModel> nodeSets;
             if (!string.IsNullOrEmpty(identifier))
             {
-                if (nodeSetUrl != null || publicationDate != null || keywords != null)
+                if (modelUri != null || publicationDate != null || keywords != null)
                 {
                     throw new ArgumentException($"Must not specify other parameters when providing identifier.");
                 }
@@ -52,13 +51,13 @@ namespace Opc.Ua.Cloud.Library
             else
             {
                 var nodeSetQuery = SearchNodesets(keywords);
-                if (nodeSetUrl != null && publicationDate != null)
+                if (modelUri != null && publicationDate != null)
                 {
-                    nodeSets = nodeSetQuery.Where(nsm => nsm.ModelUri == nodeSetUrl && nsm.PublicationDate == publicationDate);
+                    nodeSets = nodeSetQuery.Where(nsm => nsm.ModelUri == modelUri && nsm.PublicationDate == publicationDate);
                 }
-                else if (nodeSetUrl != null)
+                else if (modelUri != null)
                 {
-                    nodeSets = nodeSetQuery.Where(nsm => nsm.ModelUri == nodeSetUrl);
+                    nodeSets = nodeSetQuery.Where(nsm => nsm.ModelUri == modelUri);
                 }
                 else
                 {
@@ -68,66 +67,66 @@ namespace Opc.Ua.Cloud.Library
             return nodeSets;
         }
 
-        public IQueryable<ObjectTypeModel> GetObjectTypes(string nodeSetUrl = null, DateTime? publicationDate = null, string nodeId = null)
+        public IQueryable<ObjectTypeModel> GetObjectTypes(string modelUri = null, DateTime? publicationDate = null, string nodeId = null)
         {
-            return GetNodeModels<ObjectTypeModel>(nsm => nsm.ObjectTypes, nodeSetUrl, publicationDate, nodeId);
+            return GetNodeModels<ObjectTypeModel>(nsm => nsm.ObjectTypes, modelUri, publicationDate, nodeId);
         }
 
-        public IQueryable<VariableTypeModel> GetVariableTypes(string nodeSetUrl = null, DateTime? publicationDate = null, string nodeId = null)
+        public IQueryable<VariableTypeModel> GetVariableTypes(string modelUri = null, DateTime? publicationDate = null, string nodeId = null)
         {
-            return GetNodeModels<VariableTypeModel>(nsm => nsm.VariableTypes, nodeSetUrl, publicationDate, nodeId);
+            return GetNodeModels<VariableTypeModel>(nsm => nsm.VariableTypes, modelUri, publicationDate, nodeId);
         }
 
-        public IQueryable<DataTypeModel> GetDataTypes(string nodeSetUrl = null, DateTime? publicationDate = null, string nodeId = null)
+        public IQueryable<DataTypeModel> GetDataTypes(string modelUri = null, DateTime? publicationDate = null, string nodeId = null)
         {
-            return GetNodeModels<DataTypeModel>(nsm => nsm.DataTypes, nodeSetUrl, publicationDate, nodeId);
+            return GetNodeModels<DataTypeModel>(nsm => nsm.DataTypes, modelUri, publicationDate, nodeId);
         }
 
-        public IQueryable<PropertyModel> GetProperties(string nodeSetUrl = null, DateTime? publicationDate = null, string nodeId = null)
+        public IQueryable<PropertyModel> GetProperties(string modelUri = null, DateTime? publicationDate = null, string nodeId = null)
         {
-            return GetNodeModels<PropertyModel>(nsm => nsm.Properties, nodeSetUrl, publicationDate, nodeId);
+            return GetNodeModels<PropertyModel>(nsm => nsm.Properties, modelUri, publicationDate, nodeId);
         }
 
-        public IQueryable<DataVariableModel> GetDataVariables(string nodeSetUrl = null, DateTime? publicationDate = null, string nodeId = null)
+        public IQueryable<DataVariableModel> GetDataVariables(string modelUri = null, DateTime? publicationDate = null, string nodeId = null)
         {
-            return GetNodeModels<DataVariableModel>(nsm => nsm.DataVariables, nodeSetUrl, publicationDate, nodeId);
+            return GetNodeModels<DataVariableModel>(nsm => nsm.DataVariables, modelUri, publicationDate, nodeId);
         }
 
-        public IQueryable<ReferenceTypeModel> GetReferenceTypes(string nodeSetUrl = null, DateTime? publicationDate = null, string nodeId = null)
+        public IQueryable<ReferenceTypeModel> GetReferenceTypes(string modelUri = null, DateTime? publicationDate = null, string nodeId = null)
         {
-            return GetNodeModels<ReferenceTypeModel>(nsm => nsm.ReferenceTypes, nodeSetUrl, publicationDate, nodeId);
+            return GetNodeModels<ReferenceTypeModel>(nsm => nsm.ReferenceTypes, modelUri, publicationDate, nodeId);
         }
 
-        public IQueryable<InterfaceModel> GetInterfaces(string nodeSetUrl = null, DateTime? publicationDate = null, string nodeId = null)
+        public IQueryable<InterfaceModel> GetInterfaces(string modelUri = null, DateTime? publicationDate = null, string nodeId = null)
         {
-            return GetNodeModels<InterfaceModel>(nsm => nsm.Interfaces, nodeSetUrl, publicationDate, nodeId);
+            return GetNodeModels<InterfaceModel>(nsm => nsm.Interfaces, modelUri, publicationDate, nodeId);
         }
 
-        public IQueryable<ObjectModel> GetObjects(string nodeSetUrl = null, DateTime? publicationDate = null, string nodeId = null)
+        public IQueryable<ObjectModel> GetObjects(string modelUri = null, DateTime? publicationDate = null, string nodeId = null)
         {
-            return GetNodeModels<ObjectModel>(nsm => nsm.Objects, nodeSetUrl, publicationDate, nodeId);
+            return GetNodeModels<ObjectModel>(nsm => nsm.Objects, modelUri, publicationDate, nodeId);
         }
 
 
-        public IQueryable<NodeModel> GetAllNodes(string nodeSetUrl = null, DateTime? publicationDate = null, string nodeId = null)
+        public IQueryable<NodeModel> GetAllNodes(string modelUri = null, DateTime? publicationDate = null, string nodeId = null)
         {
-            if (nodeId != null && nodeSetUrl == null)
+            if (nodeId != null && modelUri == null)
             {
                 var expandedNodeId = ExpandedNodeId.Parse(nodeId);
                 if (expandedNodeId?.NamespaceUri != null)
                 {
-                    nodeSetUrl = expandedNodeId.NamespaceUri;
+                    modelUri = expandedNodeId.NamespaceUri;
                 }
             }
 
             IQueryable<NodeModel> nodeModels;
-            if (nodeSetUrl != null && publicationDate != null)
+            if (modelUri != null && publicationDate != null)
             {
-                nodeModels = _dbContext.nodeModels.AsQueryable().Where(nm => nm.Namespace == nodeSetUrl && nm.NodeSet.PublicationDate == publicationDate);
+                nodeModels = _dbContext.nodeModels.AsQueryable().Where(nm => nm.Namespace == modelUri && nm.NodeSet.PublicationDate == publicationDate);
             }
-            else if (nodeSetUrl != null)
+            else if (modelUri != null)
             {
-                nodeModels = _dbContext.nodeModels.AsQueryable().Where(nm => nm.Namespace == nodeSetUrl);
+                nodeModels = _dbContext.nodeModels.AsQueryable().Where(nm => nm.Namespace == modelUri);
             }
             else
             {
@@ -141,26 +140,26 @@ namespace Opc.Ua.Cloud.Library
             return nodeModels;
         }
 
-        private IQueryable<T> GetNodeModels<T>(Expression<Func<CloudLibNodeSetModel, IEnumerable<T>>> selector, string nodeSetUrl = null, DateTime? publicationDate = null, string nodeId = null)
+        private IQueryable<T> GetNodeModels<T>(Expression<Func<CloudLibNodeSetModel, IEnumerable<T>>> selector, string modelUri = null, DateTime? publicationDate = null, string nodeId = null)
             where T : NodeModel
         {
-            if (nodeId != null && nodeSetUrl == null)
+            if (nodeId != null && modelUri == null)
             {
                 var expandedNodeId = ExpandedNodeId.Parse(nodeId);
                 if (expandedNodeId?.NamespaceUri != null)
                 {
-                    nodeSetUrl = expandedNodeId.NamespaceUri;
+                    modelUri = expandedNodeId.NamespaceUri;
                 }
             }
 
             IQueryable<CloudLibNodeSetModel> nodeSets;
-            if (nodeSetUrl != null && publicationDate != null)
+            if (modelUri != null && publicationDate != null)
             {
-                nodeSets = _dbContext.nodeSets.AsQueryable().Where(nsm => nsm.ModelUri == nodeSetUrl && nsm.PublicationDate == publicationDate);
+                nodeSets = _dbContext.nodeSets.AsQueryable().Where(nsm => nsm.ModelUri == modelUri && nsm.PublicationDate == publicationDate);
             }
-            else if (nodeSetUrl != null)
+            else if (modelUri != null)
             {
-                nodeSets = _dbContext.nodeSets.AsQueryable().Where(nsm => nsm.ModelUri == nodeSetUrl);
+                nodeSets = _dbContext.nodeSets.AsQueryable().Where(nsm => nsm.ModelUri == modelUri);
             }
             else
             {
@@ -446,7 +445,7 @@ namespace Opc.Ua.Cloud.Library
             return _dbContext.NamespaceMetaData.Count();
         }
 
-        public async Task<UANameSpace> ApproveNamespaceAsync(string identifier, ApprovalStatus status, string approvalInformation, List<UAProperty> additionalProperties)
+        public async Task<NamespaceMetaDataModel> ApproveNamespaceAsync(string identifier, ApprovalStatus status, string approvalInformation, List<UAProperty> additionalProperties)
         {
             var nodeSetMeta = await _dbContext.NamespaceMetaDataWithUnapproved.Where(n => n.NodesetId == identifier).FirstOrDefaultAsync();
             if (nodeSetMeta == null) return null;
@@ -470,17 +469,7 @@ namespace Opc.Ua.Cloud.Library
                     _logger.LogWarning($"Failed to delete records on Approval cancelation for {nodeSetMeta.NodesetId}");
                     return null;
                 }
-                UANameSpace nameSpace = new();
-                try
-                {
-                    MapToNamespace(nameSpace, nodeSetMeta);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex.Message);
-                }
-                return nameSpace;
-
+                return nodeSetMeta;
             }
             _dbContext.Attach(nodeSetMeta);
             if (additionalProperties != null)
@@ -510,7 +499,8 @@ namespace Opc.Ua.Cloud.Library
                 }
             }
             await _dbContext.SaveChangesAsync();
-            return await RetrieveAllMetadataAsync(uint.Parse(identifier, CultureInfo.InvariantCulture)).ConfigureAwait(false);
+            var nodeSetMetaSaved = await _dbContext.NamespaceMetaDataWithUnapproved.Where(n => n.NodesetId == identifier).FirstOrDefaultAsync();
+            return nodeSetMetaSaved;
         }
 
         public IQueryable<CloudLibNodeSetModel> GetNodeSetsPendingApproval()

@@ -71,7 +71,8 @@ namespace Opc.Ua.Cloud.Library
                         .UseQuerySplittingBehavior(QuerySplittingBehavior.SingleQuery)
                         .EnableRetryOnFailure()
                         )
-                    .EnableSensitiveDataLogging();
+                    //.EnableSensitiveDataLogging()
+                    ;
             }
         }
 
@@ -160,8 +161,8 @@ namespace Opc.Ua.Cloud.Library
             builder.Entity<NodeModel>()
                 .HasIndex(nm => new { nm.BrowseName })
                 .HasMethod("GIN")
-                .IsTsVectorExpressionIndex("english");
-
+                .IsTsVectorExpressionIndex("english")
+                ;
             NamespaceMetaDataModel.OnModelCreating(builder);
 #if !NOLEGACYMIGRATION
             builder.Entity<MetadataModel>().HasKey(k => k.Id);
