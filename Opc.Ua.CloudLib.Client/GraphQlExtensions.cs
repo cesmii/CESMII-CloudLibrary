@@ -27,15 +27,20 @@
  * http://opcfoundation.org/License/MIT/1.00/
  * ======================================================================*/
 
-namespace Opc.Ua.Cloud.Library.Interfaces
+namespace Opc.Ua.Cloud.Library.Client
 {
-    using System.Collections.Generic;
-    using System.Security.Claims;
-    using System.Threading.Tasks;
+    using System;
+    using GraphQL.Query.Builder;
 
-    public interface IUserService
+    static class GraphQlExtensions
     {
-        Task<IEnumerable<Claim>> ValidateCredentialsAsync(string username, string password);
+        public static IQuery<TSource> AddFields<TSource>(this IQuery<TSource> This, Func<IQuery<TSource>, IQuery<TSource>> addFields, bool skip = false)
+        {
+            if (skip)
+            {
+                return This;
+            }
+            return addFields(This);
+        }
     }
 }
-
