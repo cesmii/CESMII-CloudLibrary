@@ -66,11 +66,12 @@ namespace Opc.Ua.Cloud.Library
                        .Build();
                 }
                 string connectionString = CreateConnectionString(configuration);
-                optionsBuilder.UseNpgsql(connectionString, o => o
-                    .UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
+                optionsBuilder
+                    .UseNpgsql(connectionString, o => o
                         .UseQuerySplittingBehavior(QuerySplittingBehavior.SingleQuery)
-                    .EnableRetryOnFailure()
-                    );
+                        .EnableRetryOnFailure()
+                        )
+                    ;
             }
         }
 
@@ -105,7 +106,7 @@ namespace Opc.Ua.Cloud.Library
         public IQueryable<NamespaceMetaDataModel> NamespaceMetaData
         {
             get => _approvalRequired
-                ? NamespaceMetaDataWithUnapproved.Where(n => n.ApprovalStatus != ApprovalStatus.Approved)
+                ? NamespaceMetaDataWithUnapproved.Where(n => n.ApprovalStatus == ApprovalStatus.Approved)
                 : NamespaceMetaDataWithUnapproved;
         }
 
@@ -124,7 +125,7 @@ namespace Opc.Ua.Cloud.Library
         {
             get =>
                 _approvalRequired
-                ? nodeSetsWithUnapproved.Where(n => NamespaceMetaData.Any(nmd => nmd.NodesetId == n.Identifier && nmd.ApprovalStatus == ApprovalStatus.Approved))
+                ? nodeSetsWithUnapproved.Where(n => NamespaceMetaDataWithUnapproved.Any(nmd => nmd.NodesetId == n.Identifier && nmd.ApprovalStatus == ApprovalStatus.Approved))
                 : nodeSetsWithUnapproved;
         }
 
@@ -157,10 +158,13 @@ namespace Opc.Ua.Cloud.Library
                 ;
 
             builder.Entity<NodeModel>()
+                .Ignore(nm => nm.AllReferencedNodes);
+
+            builder.Entity<NodeModel>()
                 .HasIndex(nm => new { nm.BrowseName })
                 .HasMethod("GIN")
-                .IsTsVectorExpressionIndex("english");
-
+                .IsTsVectorExpressionIndex("english")
+                ;
             NamespaceMetaDataModel.OnModelCreating(builder);
 #if !NOLEGACYMIGRATION
             builder.Entity<MetadataModel>().HasKey(k => k.Id);

@@ -30,37 +30,33 @@
 namespace Opc.Ua.Cloud.Library
 {
     using System;
+    using System.ComponentModel.DataAnnotations;
     using System.IO;
-    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
-    using Google.Cloud.Storage.V1;
+    using Microsoft.EntityFrameworkCore;
+    using Microsoft.EntityFrameworkCore.ChangeTracking;
+    using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using Opc.Ua.Cloud.Library.Interfaces;
 
-
     /// <summary>
-    /// GCP storage class
+    /// Database storage class: single store makes some development scenarios easier
+	/// For example: database deletion/recreate leaves DB out of sync with file store)
+	/// Multiple copies collide on file store
     /// </summary>
-    public class GCPFileStorage : IFileStorage
+    public class DevDbFileStorage : IFileStorage
     {
-        private readonly string _bucket;
-        private readonly StorageClient _gcsClient;
         private readonly ILogger _logger;
+        private readonly AppDbContext _dbContext;
 
         /// <summary>
         /// Default constructor
         /// </summary>
-        public GCPFileStorage(ILoggerFactory logger)
+        public DevDbFileStorage(ILoggerFactory logger, AppDbContext dbContext, IConfiguration configuration)
         {
-            _gcsClient = StorageClient.Create();
-            _logger = logger.CreateLogger("GCPFileStorage");
-            _bucket = Environment.GetEnvironmentVariable("BlobStorageConnectionString");
-            if (_bucket == null)
-            {
-                _logger.LogError($"GCS Url <BlobStorageConnectionString> not provided for file storage");
-                _bucket = string.Empty;
-            }
+            _logger = logger.CreateLogger("LocalFileStorage");
+            _dbContext = dbContext;
         }
 
         /// <summary>
@@ -68,57 +64,53 @@ namespace Opc.Ua.Cloud.Library
         /// </summary>
         public async Task<string> FindFileAsync(string name, CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrEmpty(_bucket))
-            {
-                _logger.LogError($"Error finding file {name} - GCS Bucket not specified");
-                return null;
-            }
-
             try
             {
-                await _gcsClient.GetObjectAsync(_bucket, name, cancellationToken: cancellationToken).ConfigureAwait(false);
-                return name;
-
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error finding file {name}");
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// Upload a file to a blob and return a handle to the file that can be stored in the index database
-        /// </summary>
-        public async Task<string> UploadFileAsync(string name, string content, CancellationToken cancellationToken = default)
-        {
-            if (string.IsNullOrEmpty(_bucket))
-            {
-                _logger.LogError($"Error updating file {name} - GCS Bucket not specified");
-                return null;
-            }
-
-            try
-            {
-                var ms = new MemoryStream(Encoding.UTF8.GetBytes(content));
-
-                var response = await _gcsClient.UploadObjectAsync(_bucket, name, "text/plain", ms, cancellationToken: cancellationToken).ConfigureAwait(false);
-
-                if (response.Size > 0)
+                var existingFile = await _dbContext.FindAsync<DevDbFiles>(name).ConfigureAwait(false);
+                if (existingFile != null)
                 {
                     return name;
                 }
                 else
                 {
-                    _logger.LogError($"File upload failed!");
-                    return string.Empty;
+                    return null;
                 }
-
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Failed to upload file {name}");
-                return string.Empty;
+                _logger.LogError(ex.Message);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Upload a file to a blob and return the filename for storage in the index db
+        /// </summary>
+        public async Task<string> UploadFileAsync(string name, string content, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var existingFile = await _dbContext.FindAsync<DevDbFiles>(name).ConfigureAwait(false);
+                if (existingFile != null)
+                {
+                    existingFile.Blob = content;
+                    _dbContext.Update(existingFile);
+                }
+                else
+                {
+                    DevDbFiles newFile = new DevDbFiles {
+                        Name = name,
+                        Blob = content,
+                    };
+                    _dbContext.Add(newFile);
+                }
+                await _dbContext.SaveChangesAsync(true).ConfigureAwait(false);
+                return name;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.Message);
+                return null;
             }
         }
 
@@ -127,50 +119,44 @@ namespace Opc.Ua.Cloud.Library
         /// </summary>
         public async Task<string> DownloadFileAsync(string name, CancellationToken cancellationToken = default)
         {
-
-            if (string.IsNullOrEmpty(_bucket))
-            {
-                _logger.LogError($"Error downloading file {name} - GCS Bucket not specified");
-                return null;
-            }
-
             try
             {
-                using MemoryStream file = new MemoryStream();
-                await _gcsClient.DownloadObjectAsync(_bucket, name, file, cancellationToken: cancellationToken).ConfigureAwait(false);
-                return Encoding.UTF8.GetString(file.ToArray());
-
+                var existingFile = await _dbContext.FindAsync<DevDbFiles>(name).ConfigureAwait(false);
+                return existingFile?.Blob;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Failed to download file {name}, {_bucket}");
-
-                return string.Empty;
+                _logger.LogError(ex.Message);
+                return null;
             }
         }
         public async Task DeleteFileAsync(string name, CancellationToken cancellationToken = default)
         {
-#if DEBUG
-            if (string.IsNullOrEmpty(_bucket))
-            {
-                _logger.LogError($"Error deleting file {name} - GCS Bucket not specified");
-                return;
-            }
-
             try
             {
-                await _gcsClient.DeleteObjectAsync(_bucket, name, cancellationToken: cancellationToken).ConfigureAwait(false);
-                return;
-
+                var existingFile = await _dbContext.FindAsync<DevDbFiles>(name).ConfigureAwait(false);
+                if (existingFile != null)
+                {
+                    _dbContext.Remove(existingFile);
+                    await _dbContext.SaveChangesAsync(true).ConfigureAwait(false);
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error finding file {name}");
-                return;
+                _logger.LogError(ex.Message);
+                throw;
             }
-#else
-            await Task.CompletedTask.ConfigureAwait(false);
-#endif
         }
+
+        internal static void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<DevDbFiles>();
+        }
+    }
+    public class DevDbFiles
+    {
+        [Key]
+        public string Name { get; set; }
+        public string Blob { get; set; }
     }
 }

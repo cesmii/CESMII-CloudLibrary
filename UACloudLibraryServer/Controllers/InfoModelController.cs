@@ -132,6 +132,10 @@ namespace Opc.Ua.Cloud.Library
             }
 
             var uaNamespace = await _database.RetrieveAllMetadataAsync(nodeSetID).ConfigureAwait(false);
+            if (uaNamespace == null)
+            {
+                return new ObjectResult("Failed to find nodeset metadata") { StatusCode = (int)HttpStatusCode.NotFound };
+            }
             uaNamespace.Nodeset.NodesetXml = nodesetXml;
 
             if (!metadataOnly)
@@ -268,8 +272,14 @@ namespace Opc.Ua.Cloud.Library
                 string result = await _storage.FindFileAsync(uaNamespace.Nodeset.Identifier.ToString(CultureInfo.InvariantCulture)).ConfigureAwait(false);
                 if (!string.IsNullOrEmpty(result) && !overwrite)
                 {
-                    // nodeset already exists
-                    return new ObjectResult("Nodeset already exists. Use overwrite flag to overwrite this existing entry in the Library.") { StatusCode = (int)HttpStatusCode.Conflict };
+                    var existingNamespace = await _database.RetrieveAllMetadataAsync(uaNamespace.Nodeset.Identifier).ConfigureAwait(false);
+                    if (existingNamespace != null)
+                    {
+                        // nodeset already exists
+                        return new ObjectResult("Nodeset already exists. Use overwrite flag to overwrite this existing entry in the Library.") { StatusCode = (int)HttpStatusCode.Conflict };
+                    }
+                    // nodeset metadata not found: allow overwrite of orphaned blob
+                    overwrite = true;
                 }
 
                 // check contributors match if nodeset already exists
@@ -281,19 +291,23 @@ namespace Opc.Ua.Cloud.Library
 
                 if (uaNamespace.Nodeset.PublicationDate != nodeSet.Models[0].PublicationDate)
                 {
-                    return new ObjectResult("PublicationDate in metadata does not match nodeset XML.") { StatusCode = (int)HttpStatusCode.BadRequest };
+                    _logger.LogInformation("PublicationDate in metadata does not match nodeset XML. Ignoring.");
+                    uaNamespace.Nodeset.PublicationDate = nodeSet.Models[0].PublicationDate;
                 }
                 if (uaNamespace.Nodeset.Version != nodeSet.Models[0].Version)
                 {
-                    return new ObjectResult("Version in metadata does not match nodeset XML.") { StatusCode = (int)HttpStatusCode.BadRequest };
+                    _logger.LogInformation("Version in metadata does not match nodeset XML. Ignoring.");
+                    uaNamespace.Nodeset.Version = nodeSet.Models[0].Version;
                 }
                 if (uaNamespace.Nodeset.NamespaceUri != null && uaNamespace.Nodeset.NamespaceUri.OriginalString != nodeSet.Models[0].ModelUri)
                 {
-                    return new ObjectResult("NamespaceUri in metadata does not match nodeset XML.") { StatusCode = (int)HttpStatusCode.BadRequest };
+                    _logger.LogInformation("NamespaceUri in metadata does not match nodeset XML. Ignoring.");
+                    uaNamespace.Nodeset.NamespaceUri = new Uri(nodeSet.Models[0].ModelUri);
                 }
                 if (uaNamespace.Nodeset.LastModifiedDate != nodeSet.LastModified)
                 {
                     _logger.LogInformation($"LastModifiedDate in metadata for nodeset {uaNamespace.Nodeset.Identifier} does not match nodeset XML. Ignoring.");
+                    uaNamespace.Nodeset.LastModifiedDate = nodeSet.LastModified;
                 }
 
                 // Ignore RequiredModels if provided: cloud library will read from the nodeset
@@ -336,7 +350,7 @@ namespace Opc.Ua.Cloud.Library
                     }
                 }
 
-                return new ObjectResult("Upload successful!") { StatusCode = (int)HttpStatusCode.OK };
+                return new ObjectResult(uaNamespace.Nodeset.Identifier.ToString(CultureInfo.InvariantCulture)) { StatusCode = (int)HttpStatusCode.OK };
             }
             finally
             {
