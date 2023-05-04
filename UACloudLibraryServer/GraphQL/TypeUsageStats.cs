@@ -7,26 +7,29 @@ using HotChocolate.Data;
 
 namespace Opc.Ua.Cloud.Library
 {
-    public partial class CloudLibDataProvider : IDatabase
+    public partial class QueryModel
     {
         [UseFiltering, UseSorting]
-        public /*Dictionary<string,*/ List<TypeStats> GetTypeUsageStats([Service(ServiceKind.Synchronized)] IDatabase dp)
+        public List<TypeStats> GetTypeUsageStats([Service(ServiceKind.Synchronized)] IDatabase dp)
         {
             return (dp as CloudLibDataProvider).GetTypeUsageStats();
         }
+    }
 
-        public class TypeStats
-        {
-            public string Namespace { get; set; }
-            public string Name { get; set; }
-            public string NodeClass { get; set; }
-            public int SubTypeCount { get; set; }
-            public int SubTypeExternalCount { get; set; }
-            public int ComponentCount { get; set; }
-            public int ComponentExternalCount { get; set; }
-            public IEnumerable<string> NodeSetsExternal { get; set; }
-            public int NodeSetsExternalCount => NodeSetsExternal.Count();
-        }
+    public class TypeStats
+    {
+        public string Namespace { get; set; }
+        public string Name { get; set; }
+        public string NodeClass { get; set; }
+        public int SubTypeCount { get; set; }
+        public int SubTypeExternalCount { get; set; }
+        public int ComponentCount { get; set; }
+        public int ComponentExternalCount { get; set; }
+        public IEnumerable<string> NodeSetsExternal { get; set; }
+        public int NodeSetsExternalCount => NodeSetsExternal.Count();
+    }
+    public partial class CloudLibDataProvider
+    {
         public /*Dictionary<string, */List<TypeStats> GetTypeUsageStats()
         {
             var objectTypesInObjectsStats = _dbContext.nodeSets
@@ -161,8 +164,8 @@ namespace Opc.Ua.Cloud.Library
                 .Concat(dataTypeInVariablesStats)
                 .Concat(dataTypeInStructsStats)
                 .Concat(variableTypeStats)
-                //.GroupBy(ts => ts.Namespace)
-                //.ToDictionary(g => g.Key, g => g
+                    //.GroupBy(ts => ts.Namespace)
+                    //.ToDictionary(g => g.Key, g => g
                     .GroupBy(ts => ts.Name, (key, tsList) => tsList.Aggregate((ts1, ts2) => new TypeStats {
                         Name = ts1.Name,
                         Namespace = ts1.Namespace,
