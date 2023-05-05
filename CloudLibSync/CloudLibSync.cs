@@ -190,7 +190,16 @@ namespace Opc.Ua.CloudLib.Sync
                     _logger.LogInformation($"Error uploading {file}: failed to parse.");
                     continue;
                 }
-                if (addressSpace.Nodeset == null)
+                if (addressSpace.Nodeset == null || string.IsNullOrEmpty(addressSpace.Nodeset.NodesetXml))
+                {
+                    var xmlFile = Path.Combine(Path.GetDirectoryName(file)??file, Path.GetFileNameWithoutExtension(file) + ".xml");
+                    if (File.Exists(xmlFile))
+                    {
+                        var xml = File.ReadAllText(xmlFile);
+                        addressSpace.Nodeset = new Nodeset { NodesetXml = xml };
+                    }
+                }
+                if (addressSpace.Nodeset == null || string.IsNullOrEmpty(addressSpace.Nodeset.NodesetXml))
                 {
                     _logger.LogInformation($"Error uploading {file}: no Nodeset found in file.");
                     continue;

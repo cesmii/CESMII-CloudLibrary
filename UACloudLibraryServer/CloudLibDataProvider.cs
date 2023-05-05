@@ -351,7 +351,7 @@ namespace Opc.Ua.Cloud.Library
                     .Where(nsm =>
                         _dbContext.NamespaceMetaData.Any(md =>
                             md.NodesetId == nsm.Identifier
-                            && Regex.IsMatch(md.Title + md.Description, keywordRegex, RegexOptions.IgnoreCase)
+                            && Regex.IsMatch(md.Title + md.Description + md.NodeSet.ModelUri, keywordRegex, RegexOptions.IgnoreCase)
                             // Fulltext appears to be slower than regex: && EF.Functions.ToTsVector("english", md.Title + " || " + md.Description/* + " " + string.Join(' ', md.Keywords) + md.Category.Name + md.Contributor.Name*/).Matches(keywordTsQuery))
                             )
 
