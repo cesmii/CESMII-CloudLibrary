@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using CESMII.OpcUa.NodeSetModel;
-using Microsoft.EntityFrameworkCore;
 using HotChocolate;
 using HotChocolate.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace Opc.Ua.Cloud.Library
 {
