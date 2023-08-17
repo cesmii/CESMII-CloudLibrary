@@ -304,6 +304,50 @@ a.btn.disabled, fieldset:disabled a.btn {
             box-shadow: 0 0 0 .2rem rgba(77,75,71,.5)
         }
 
+
+/*-------------------------------------------*/
+/*Tile Settings                              */
+/*-------------------------------------------*/
+.tile-link {
+    font: unset;
+    color: unset
+}
+
+.tile-link:hover {
+    text-decoration: unset;
+    cursor: pointer;
+}
+
+.tile-link img {
+    max-height:60px;
+    width:auto;
+    border-radius: 20px 0px 0px 0px;
+}
+
+.tile-link:hover img {
+    opacity: .8
+}
+
+.tile-link .tile-body {
+    background-color: #fff;
+    box-shadow: 0 4px 12px rgba(0,0,0,.3);
+    border-radius: 20px;
+    border-color: #fff;
+}
+
+.tile-link:hover .tile-body {
+    box-shadow: 0 4px 12px rgba(0,0,0,.6);
+    border-color: rgba(93,150,241,.7)
+}
+
+.tile-link .tile-body .card-img-top {
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px
+}
+
+/*-------------------------------------------*/
+/*Footer Settings                            */
+/*-------------------------------------------*/
 footer {
     position:fixed;
 }
