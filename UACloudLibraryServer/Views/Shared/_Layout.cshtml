@@ -3,16 +3,19 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - UA Cloud Library</title>
+    <title>@ViewData["Title"] | CESMII | UA Cloud Library</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" />
+    <link rel="stylesheet" href="~/css/cesmi.css" />
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+    <header class="bg-transparent">
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-dark bg-primary mb-3">
             <div class="container">
-                <img src="~/logo.jpg"/>
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">UA Cloud Library</a>
+                <div class="d-flex align-items-center" >
+                    <img class="logo mr-3 mb-2" src="~/logo-cesmii.svg" alt="CESMII Logo"/>
+                    <a class="navbar-brand headline-2 text-nowrap" asp-area="" asp-controller="Home" asp-action="Index">CESMII UA Cloud Library</a>
+                </div>
                 <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="navbarSupportedContent"
                         aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
@@ -26,14 +29,15 @@
         </nav>
     </header>
     <div class="container">
-        <main role="main" class="pb-3">
+        <main role="main" class="pb-3 mb-4">
             @RenderBody()
         </main>
     </div>
 
-    <footer class="border-top footer text-muted">
+    <footer class="border-top footer text-muted bg-dark">
         <div class="container">
-            &copy; 2022 - OPC Foundation - <a href="https://github.com/OPCFoundation/UA-CloudLibrary/tree/@ThisAssembly.GitCommitId" target="_blank">@ThisAssembly.AssemblyInformationalVersion</a> - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+            <p class="pt-4 text-center">&copy; 2022-2023 CESMII. All rights reserved.</p>
+            <p class="mb-4 text-center"><a href="https://github.com/cesmii/CESMII-CloudLibrary/tree/@ThisAssembly.GitCommitId" target="_blank">@ThisAssembly.AssemblyInformationalVersion</a> - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a></p>
         </div>
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
