@@ -88,8 +88,15 @@ namespace Opc.Ua.Cloud.Library.Areas.Identity.Pages.Account
                         values: new { area = "Identity", userId = user.Id, code = code, returnUrl = returnUrl },
                         protocol: Request.Scheme);
 
-                    await _emailSender.SendEmailAsync(Input.Email, "Confirm your email",
-                        $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
+                    StringBuilder sbBody = new StringBuilder();
+                    sbBody.AppendLine("<h1>Welcome to the CESMII UA Cloud Library</h1>");
+                    sbBody.AppendLine("<p>Thank you for creating an account on the CESMII UA Cloud Library. ");
+                    sbBody.AppendLine($"<b>Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.</b></p>");
+                    sbBody.AppendLine("<p>The CESMII UA Cloud Library is hosted by <a href='https://www.cesmii.org/'>CESMII</a>, the Clean Energy Smart Manufacturing Institute! This Cloud Library contains curated node sets created by CESMII or its members, as well as node sets from the <a href='https://uacloudlibrary.opcfoundation.org/'>OPC Foundation Cloud Library</a>.</p>");
+                    sbBody.AppendLine("<p>Sincerely,<br />CESMII DevOps Team</p>");
+
+                    await _emailSender.SendEmailAsync(Input.Email, "CESMII | Cloud Library | New Account Confirmation",
+                        sbBody.ToString());
 
                     if (_userManager.Options.SignIn.RequireConfirmedAccount)
                     {
