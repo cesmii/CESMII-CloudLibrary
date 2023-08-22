@@ -24,12 +24,12 @@
   </PropertyGroup>
     
   <PropertyGroup>
-    <PackageIcon>images/logo.jpg</PackageIcon>
+    <PackageIcon>images/logo-cesmii.svg</PackageIcon>
     <PackageProjectUrl>$(RepositoryUrl)</PackageProjectUrl>
     <PackageLicenseFile>Licenses/LICENSE.txt</PackageLicenseFile>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <PackageReleaseNotes>$(RepositoryUrl)/releases</PackageReleaseNotes>
-    <PackageTags>OPCFoundation OPC UA netstandard ios linux dotnet net netcore uwp</PackageTags>
+    <PackageTags>CESMII OPCFoundation OPC UA netstandard ios linux dotnet net netcore uwp</PackageTags>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(IsPackable)' != 'false' AND '$(PackageLicenseExpression)' == 'MIT'">
@@ -41,7 +41,7 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(IsPackable)' != 'false'">
-    <None Include="$(MSBuildThisFileDirectory)/nuget/logo.jpg" Pack="true" PackagePath="$(PackageIcon)"/>
+    <None Include="$(MSBuildThisFileDirectory)/nuget/logo-cesmii.svg" Pack="true" PackagePath="$(PackageIcon)"/>
   </ItemGroup>
 
   <ItemGroup Condition="'$(NBGV_PublicRelease)' != ''">
