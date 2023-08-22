@@ -50,7 +50,7 @@ namespace Opc.Ua.Cloud.Library
                 if (string.IsNullOrEmpty(emailReplyTo)) emailReplyTo = "no-reply@cesmii.org";
 
                 SendGridMessage msg = new SendGridMessage() {
-                    From = new EmailAddress(emailFrom),
+                    From = new EmailAddress(emailFrom,"CESMII Dev Ops"),
                     ReplyTo = new EmailAddress(emailReplyTo),
                     Subject = subject,
                     PlainTextContent = htmlMessage,
