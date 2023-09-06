@@ -355,3 +355,4 @@ MigrationBackup/
 **/Properties/launchSettings.json
 
 #/UACloudLibraryServer/key-*.xml
+/UACloudLibraryServer/MyCloudLib

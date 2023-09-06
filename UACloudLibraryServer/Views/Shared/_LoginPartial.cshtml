@@ -3,7 +3,7 @@
 @inject UserManager<IdentityUser> UserManager
 
 <ul class="navbar-nav">
-@if (SignInManager.IsSignedIn(User))
+@if (SignInManager.IsSignedIn(User) || (User.Identity.Name != null && User.Identity.IsAuthenticated))
 {
     <li class="nav-item">
         <a  class="nav-link text-white" asp-area="Identity" asp-page="/Account/Manage/Index" title="Manage">Hello @User.Identity.Name!</a>
@@ -21,6 +21,8 @@ else
     </li>
     <li class="nav-item">
         <a class="nav-link text-white" asp-area="Identity" asp-page="/Account/Login">Login</a>
+            @*            <partial name="_ExternalAuthentication" />
+        *@
     </li>
 }
 </ul>

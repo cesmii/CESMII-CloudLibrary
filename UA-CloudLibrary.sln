@@ -11,6 +11,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		azure-pipelines-preview.yml = azure-pipelines-preview.yml
 		common.props = common.props
 		Directory.Build.props = Directory.Build.props
+		Directory.Build.targets = Directory.Build.targets
 		.github\workflows\docker.yml = .github\workflows\docker.yml
 		Dockerfile = Dockerfile
 		local-dev-docker\docker_pgadmin_servers.json = local-dev-docker\docker_pgadmin_servers.json
@@ -39,6 +40,18 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CloudLibSync", "CloudLibSync\CloudLibSync.csproj", "{836E1813-22F5-42CD-A557-C0923797114B}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CloudLibSyncAzureFunction", "CloudLibSyncAzureFunction\CloudLibSyncAzureFunction.csproj", "{6A7EF892-71D1-4076-AD10-7F67F276528B}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CESMII.OpcUa.NodeSetModel", "..\..\CESMII-NodeSet-Utilities\src\CESMII.OpcUa.NodeSetModel\CESMII.OpcUa.NodeSetModel.csproj", "{7098142B-1068-467D-9155-762A8BFB6EEC}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CESMII.OpcUa.NodeSetModel.EF", "..\..\CESMII-NodeSet-Utilities\src\CESMII.OpcUa.NodeSetModel.EF\CESMII.OpcUa.NodeSetModel.EF.csproj", "{AC393E27-B8F5-4F32-9C25-2ABC14744330}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CESMII.OpcUa.NodeSetModel.Factory.Opc", "..\..\CESMII-NodeSet-Utilities\src\CESMII.OpcUa.NodeSetModel.Factory.Opc\CESMII.OpcUa.NodeSetModel.Factory.Opc.csproj", "{FE853439-9E1E-43B1-B305-07487ACE0B5F}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CESMII.OpcUa.NodeSetImporter", "..\..\CESMII-NodeSet-Utilities\src\CESMII.OpcUa.NodeSetImporter\CESMII.OpcUa.NodeSetImporter.csproj", "{E4E0FE02-E4A0-4BAF-8BF2-7D63A5030623}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "OPC", "OPC", "{AAD4F1C1-6316-43C0-8D7B-DF45B066A105}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OPCFoundation.NetStandard.Opc.Ua.Core", "..\..\UA-.NETStandard\Stack\Opc.Ua.Core\Opc.Ua.Core.csproj", "{62C2044C-A1A6-4AC0-8D3E-707C14D26380}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -73,6 +86,26 @@ Global
 		{6A7EF892-71D1-4076-AD10-7F67F276528B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6A7EF892-71D1-4076-AD10-7F67F276528B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6A7EF892-71D1-4076-AD10-7F67F276528B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7098142B-1068-467D-9155-762A8BFB6EEC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7098142B-1068-467D-9155-762A8BFB6EEC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7098142B-1068-467D-9155-762A8BFB6EEC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7098142B-1068-467D-9155-762A8BFB6EEC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AC393E27-B8F5-4F32-9C25-2ABC14744330}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AC393E27-B8F5-4F32-9C25-2ABC14744330}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AC393E27-B8F5-4F32-9C25-2ABC14744330}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AC393E27-B8F5-4F32-9C25-2ABC14744330}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FE853439-9E1E-43B1-B305-07487ACE0B5F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FE853439-9E1E-43B1-B305-07487ACE0B5F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FE853439-9E1E-43B1-B305-07487ACE0B5F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FE853439-9E1E-43B1-B305-07487ACE0B5F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E4E0FE02-E4A0-4BAF-8BF2-7D63A5030623}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E4E0FE02-E4A0-4BAF-8BF2-7D63A5030623}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E4E0FE02-E4A0-4BAF-8BF2-7D63A5030623}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E4E0FE02-E4A0-4BAF-8BF2-7D63A5030623}.Release|Any CPU.Build.0 = Release|Any CPU
+		{62C2044C-A1A6-4AC0-8D3E-707C14D26380}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{62C2044C-A1A6-4AC0-8D3E-707C14D26380}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{62C2044C-A1A6-4AC0-8D3E-707C14D26380}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{62C2044C-A1A6-4AC0-8D3E-707C14D26380}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -80,6 +113,11 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{1AB4086F-0197-46C1-9C79-FCCAA05B90D6} = {3D43B49A-27D9-47EC-A824-263B43AA9C76}
 		{469D7E06-37C7-47B4-B88E-5973BB896EE5} = {61FA5300-FBB8-418B-8F10-B401001EC236}
+		{7098142B-1068-467D-9155-762A8BFB6EEC} = {AAD4F1C1-6316-43C0-8D7B-DF45B066A105}
+		{AC393E27-B8F5-4F32-9C25-2ABC14744330} = {AAD4F1C1-6316-43C0-8D7B-DF45B066A105}
+		{FE853439-9E1E-43B1-B305-07487ACE0B5F} = {AAD4F1C1-6316-43C0-8D7B-DF45B066A105}
+		{E4E0FE02-E4A0-4BAF-8BF2-7D63A5030623} = {AAD4F1C1-6316-43C0-8D7B-DF45B066A105}
+		{62C2044C-A1A6-4AC0-8D3E-707C14D26380} = {AAD4F1C1-6316-43C0-8D7B-DF45B066A105}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B18C4ECD-199D-4657-963A-AF276DBC2C76}

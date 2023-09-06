@@ -1635,6 +1635,9 @@ namespace Opc.Ua.Cloud.Library
                     b1.Property<string>("Name")
                         .HasColumnType("text");
 
+                    b1.Property<string>("SymbolicName")
+                        .HasColumnType("text");
+
                     b1.Property<int?>("ValueRank")
                         .HasColumnType("integer");
 
@@ -1708,6 +1711,9 @@ namespace Opc.Ua.Cloud.Library
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b1.Property<int>("Id"));
 
                     b1.Property<string>("Name")
+                        .HasColumnType("text");
+
+                    b1.Property<string>("SymbolicName")
                         .HasColumnType("text");
 
                     b1.Property<long>("Value")

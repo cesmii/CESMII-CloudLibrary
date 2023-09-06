@@ -129,11 +129,12 @@ namespace Opc.Ua.CloudLib.Sync
                     // Get the ones that are not already on the target
                     var toSync = sourceNodeSetResult.Edges
                         .Select(e => e.Node)
-                        .Where(source => !targetNodesets
-                            .Any(target =>
-                                source.NamespaceUri?.OriginalString== target.NamespaceUri?.OriginalString
-                                && (source.PublicationDate == target.PublicationDate || (source.Identifier != 0 && source.Identifier == target.Identifier))
-                        )).ToList();
+                        //.Where(source => !targetNodesets
+                        //    .Any(target =>
+                        //        source.NamespaceUri?.OriginalString== target.NamespaceUri?.OriginalString
+                        //        && (source.PublicationDate == target.PublicationDate || (source.Identifier != 0 && source.Identifier == target.Identifier))
+                        //))
+                        .ToList();
                     foreach (var nodeSet in toSync)
                     {
                         // Download each NodeSet
@@ -142,6 +143,10 @@ namespace Opc.Ua.CloudLib.Sync
 
                         try
                         {
+                            string suffix = "Testing03";
+                            uaNamespace.Title += suffix;
+                            uaNamespace.Nodeset.NodesetXml = uaNamespace.Nodeset.NodesetXml.Replace(uaNamespace.Nodeset.NamespaceUri.OriginalString, uaNamespace.Nodeset.NamespaceUri.OriginalString + suffix, StringComparison.InvariantCultureIgnoreCase);
+                            uaNamespace.Nodeset.NamespaceUri = new Uri(uaNamespace.Nodeset.NamespaceUri.OriginalString + suffix);
                             VerifyAndFixupNodeSetMeta(uaNamespace);
                             // upload NodeSet to target cloud library
                             var response = await targetClient.UploadNodeSetAsync(uaNamespace).ConfigureAwait(false);
@@ -149,6 +154,8 @@ namespace Opc.Ua.CloudLib.Sync
                             {
                                 bAdded = true;
                                 _logger.LogInformation($"Uploaded {uaNamespace.Nodeset.NamespaceUri}, {identifier}");
+                                await targetClient.UpdateApprovalStatusAsync(identifier, "APPROVED", "Synced", null);
+                                _logger.LogInformation($"Approved {uaNamespace.Nodeset.NamespaceUri}, {identifier}");
                             }
                             else
                             {

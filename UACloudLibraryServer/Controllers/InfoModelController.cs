@@ -191,6 +191,10 @@ namespace Opc.Ua.Cloud.Library
         {
             try
             {
+                if (uaNamespace?.Nodeset?.NodesetXml == null)
+                {
+                    return new ObjectResult($"No nodeset XML was specified") { StatusCode = (int)HttpStatusCode.BadRequest };
+                }
                 UANodeSet nodeSet = null;
                 try
                 {
@@ -231,12 +235,12 @@ namespace Opc.Ua.Cloud.Library
                                 {
                                     return new ObjectResult($"Nodeset exists but existing nodeset had no model entry.") { StatusCode = (int)HttpStatusCode.Conflict };
                                 }
-                                if (!firstModel.PublicationDateSpecified || firstModel.PublicationDate == nodeSet.Models[0].PublicationDate)
+                                if ((!firstModel.PublicationDateSpecified && !nodeSet.Models[0].PublicationDateSpecified) || firstModel.PublicationDate == nodeSet.Models[0].PublicationDate)
                                 {
                                     if (!overwrite)
                                     {
                                         // nodeset already exists
-                                        return new ObjectResult("Nodeset already exists. Use overwrite flag to overwrite this existing entry in the Library.") { StatusCode = (int)HttpStatusCode.Conflict };
+                                        return new ObjectResult("Nodeset already exists. Use overwrite flag to overwrite this existing legacy entry in the Library.") { StatusCode = (int)HttpStatusCode.Conflict };
                                     }
                                 }
                                 else
