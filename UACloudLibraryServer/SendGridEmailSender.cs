@@ -44,13 +44,13 @@ namespace Opc.Ua.Cloud.Library
             {
                 SendGridClient client = new SendGridClient(apiKey);
                 var emailFrom = Environment.GetEnvironmentVariable("RegistrationEmailFrom");
-                if (string.IsNullOrEmpty(emailFrom)) emailFrom = "office@opcfoundation.org";
+                if (string.IsNullOrEmpty(emailFrom)) emailFrom = "devops@cesmii.org";
 
                 var emailReplyTo = Environment.GetEnvironmentVariable("RegistrationEmailReplyTo");
-                if (string.IsNullOrEmpty(emailReplyTo)) emailReplyTo = "no-reply@opcfoundation.org";
+                if (string.IsNullOrEmpty(emailReplyTo)) emailReplyTo = "no-reply@cesmii.org";
 
                 SendGridMessage msg = new SendGridMessage() {
-                    From = new EmailAddress(emailFrom),
+                    From = new EmailAddress(emailFrom, "CESMII Dev Ops"),
                     ReplyTo = new EmailAddress(emailReplyTo),
                     Subject = subject,
                     PlainTextContent = htmlMessage,

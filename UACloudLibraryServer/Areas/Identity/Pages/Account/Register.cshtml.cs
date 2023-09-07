@@ -88,8 +88,27 @@ namespace Opc.Ua.Cloud.Library.Areas.Identity.Pages.Account
                         values: new { area = "Identity", userId = user.Id, code = code, returnUrl = returnUrl },
                         protocol: Request.Scheme);
 
-                    await _emailSender.SendEmailAsync(Input.Email, "Confirm your email",
-                        $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
+                    //notify registering user
+                    StringBuilder sbBody = new StringBuilder();
+                    sbBody.AppendLine("<h1>Welcome to the CESMII UA Cloud Library</h1>");
+                    sbBody.AppendLine("<p>Thank you for creating an account on the CESMII UA Cloud Library. ");
+                    if (_userManager.Options.SignIn.RequireConfirmedAccount)
+                    {
+                        sbBody.AppendLine($"<b>Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.</b></p>");
+                    }
+                    sbBody.AppendLine("<p>The CESMII UA Cloud Library is hosted by <a href='https://www.cesmii.org/'>CESMII</a>, the Clean Energy Smart Manufacturing Institute! This Cloud Library contains curated node sets created by CESMII or its members, as well as node sets from the <a href='https://uacloudlibrary.opcfoundation.org/'>OPC Foundation Cloud Library</a>.</p>");
+                    sbBody.AppendLine("<p>Sincerely,<br />CESMII DevOps Team</p>");
+
+                    await _emailSender.SendEmailAsync(Input.Email, "CESMII | Cloud Library | New Account Confirmation",
+                        sbBody.ToString());
+
+                    //notify CESMII dev ops as well
+                    StringBuilder sbBody2 = new StringBuilder();
+                    sbBody2.AppendLine("<h1>CESMII UA Cloud Library - New Account Sign Up</h1>");
+                    sbBody2.AppendLine($"<p>User <b>'{Input.Email}'</b> created an account on the CESMII UA Cloud Library. ");
+                    sbBody2.AppendLine("<p>The CESMII UA Cloud Library is hosted by <a href='https://www.cesmii.org/'>CESMII</a>, the Clean Energy Smart Manufacturing Institute! This Cloud Library contains curated node sets created by CESMII or its members, as well as node sets from the <a href='https://uacloudlibrary.opcfoundation.org/'>OPC Foundation Cloud Library</a>.</p>");
+                    sbBody2.AppendLine("<p>Sincerely,<br />CESMII DevOps Team</p>");
+                    await _emailSender.SendEmailAsync("devops@cesmii.org", "CESMII | Cloud Library | New Account Sign Up", sbBody2.ToString());
 
                     if (_userManager.Options.SignIn.RequireConfirmedAccount)
                     {
