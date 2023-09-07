@@ -108,8 +108,7 @@ namespace Opc.Ua.Cloud.Library.Areas.Identity.Pages.Account
                     sbBody2.AppendLine($"<p>User <b>'{Input.Email}'</b> created an account on the CESMII UA Cloud Library. ");
                     sbBody2.AppendLine("<p>The CESMII UA Cloud Library is hosted by <a href='https://www.cesmii.org/'>CESMII</a>, the Clean Energy Smart Manufacturing Institute! This Cloud Library contains curated node sets created by CESMII or its members, as well as node sets from the <a href='https://uacloudlibrary.opcfoundation.org/'>OPC Foundation Cloud Library</a>.</p>");
                     sbBody2.AppendLine("<p>Sincerely,<br />CESMII DevOps Team</p>");
-                    //await _emailSender.SendEmailAsync("devops@cesmii.org", "CESMII | Cloud Library | New Account Sign Up",sbBody2.ToString());
-                    await _emailSender.SendEmailAsync("devops@cesmii.org", "CESMII | Cloud Library | New Account Sign Up",sbBody2.ToString());
+                    await _emailSender.SendEmailAsync("devops@cesmii.org", "CESMII | Cloud Library | New Account Sign Up", sbBody2.ToString());
 
                     if (_userManager.Options.SignIn.RequireConfirmedAccount)
                     {
