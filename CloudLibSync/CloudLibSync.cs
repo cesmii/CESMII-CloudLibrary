@@ -117,7 +117,6 @@ namespace Opc.Ua.CloudLib.Sync
                     targetNodesets.AddRange(targetNodeSetResult.Edges.Select(e => e.Node));
                     targetCursor = targetNodeSetResult.PageInfo.EndCursor;
                 } while (targetNodeSetResult.PageInfo.HasNextPage);
-
                 bAdded = false;
 
                 GraphQlResult<Nodeset> sourceNodeSetResult;
