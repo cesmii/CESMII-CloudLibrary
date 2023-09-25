@@ -71,8 +71,8 @@ namespace Opc.Ua.Cloud.Library
                     return null;
                 }
                 List<Claim> claims = new() {
-                            new Claim(ClaimTypes.Name, username)
-                        };
+                    new Claim(ClaimTypes.Name, username)
+                };
 
                 claims.Add(new Claim(ClaimTypes.Role, "Administrator"));
                 return claims;

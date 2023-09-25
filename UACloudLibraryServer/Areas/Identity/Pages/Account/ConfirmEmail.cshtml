@@ -1,8 +1,26 @@
 ﻿@page
 @model ConfirmEmailModel
 @{
-    ViewData["Title"] = "Confirm email";
+    ViewData["Title"] = "Confirm Email";
+
+    var _alertCss = Model.Succeeded ? "alert alert-success" : "alert alert-danger";
 }
 
 <h1>@ViewData["Title"]</h1>
-<partial name="_StatusMessage" model="Model.StatusMessage" />
+
+<div class="row" >
+    <div class="col-12" >
+        <div class="@_alertCss" role="alert">
+            @Model.StatusMessage
+        </div>    
+    </div>
+</div>
+
+@if (Model.Succeeded)
+{
+    <div class="row" >
+        <div class="col-12" >
+            <a class="btn btn-primary" asp-area="Identity" asp-page="/Account/Login">Login</a>
+        </div>
+    </div>
+}
