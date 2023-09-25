@@ -27,7 +27,7 @@
  * http://opcfoundation.org/License/MIT/1.00/
  * ======================================================================*/
 
-namespace Opc.Ua.Cloud.Library
+namespace Opc.Ua.Cloud.Library.Controllers
 {
     using System.ComponentModel.DataAnnotations;
     using System.Net;
@@ -63,55 +63,12 @@ namespace Opc.Ua.Cloud.Library
             [FromQuery][SwaggerParameter("Status of the approval")] ApprovalStatus status,
             [FromQuery][SwaggerParameter("Information about the approval")] string approvalInformation)
         {
-            if (await _database.ApproveNamespaceAsync(identifier, status, approvalInformation, null) != null)
+            if (await _database.ApproveNamespaceAsync(identifier, status, approvalInformation, null).ConfigureAwait(false) != null)
             {
                 return new ObjectResult("Approval status updated successfully") { StatusCode = (int)HttpStatusCode.OK };
             }
             _logger.LogError($"Approval failed: {identifier} not found.");
             return NotFound();
-        }
-
-        [HttpPut]
-        [Route("/access/roles/{roleName}")]
-        [Authorize(Policy = "UserAdministrationPolicy")]
-        [SwaggerResponse(statusCode: 200, type: typeof(string), description: "A status message indicating the successful approval.")]
-        [SwaggerResponse(statusCode: 404, type: typeof(string), description: "The provided nodeset was not found.")]
-        [SwaggerResponse(statusCode: 500, type: typeof(string), description: "The provided information model could not be stored or updated.")]
-        public async Task<IActionResult> AddRoleAsync(
-            [FromRoute][Required][SwaggerParameter("OPC UA Information model identifier.")] string roleName,
-            [FromServices] RoleManager<IdentityRole> roleManager
-            )
-        {
-            var result = await roleManager.CreateAsync(new IdentityRole { Name = roleName });
-            if (!result.Succeeded)
-            {
-                return this.BadRequest(result);
-            }
-            return new ObjectResult("Role added successfully") { StatusCode = (int)HttpStatusCode.OK };
-        }
-        [HttpPut]
-        [Route("/access/userRoles/{userId}/{roleName}")]
-        [Authorize(Policy = "UserAdministrationPolicy")]
-        [SwaggerResponse(statusCode: 200, type: typeof(string), description: "A status message indicating the successful approval.")]
-        [SwaggerResponse(statusCode: 404, type: typeof(string), description: "The provided nodeset was not found.")]
-        [SwaggerResponse(statusCode: 500, type: typeof(string), description: "The provided information model could not be stored or updated.")]
-        public async Task<IActionResult> AddRoleToUserAsync(
-            [FromRoute][Required][SwaggerParameter("OPC UA Information model identifier.")] string userId,
-            [FromRoute][Required][SwaggerParameter("OPC UA Information model identifier.")] string roleName,
-            [FromServices] UserManager<IdentityUser> userManager
-            )
-        {
-            var user = await userManager.FindByIdAsync(userId);
-            if (user == null)
-            {
-                return NotFound();
-            }
-            var result = await userManager.AddToRoleAsync(user, roleName);
-            if (!result.Succeeded)
-            {
-                return this.BadRequest(result);
-            }
-            return new ObjectResult("User role added successfully") { StatusCode = (int)HttpStatusCode.OK };
         }
     }
 }
