@@ -71,8 +71,14 @@ In case file based authentication is used, please set the envionment variable GO
         https://(servername)/signout-oidc
 
     - Select ID tokens (no need for Access tokens).
-   
-2. Configure the server to use the application:
+ 
+2. Add an Administrator App role:
+    - Name and Description per your conventions
+    - Value must be "Administrator"
+
+3. Assign administrator role to the desired users.
+ 
+4. Configure the server to use the application:
 
 ```json
   "AzureAd": {
