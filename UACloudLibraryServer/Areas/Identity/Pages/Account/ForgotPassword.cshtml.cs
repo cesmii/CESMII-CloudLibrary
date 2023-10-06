@@ -53,8 +53,8 @@ namespace Opc.Ua.Cloud.Library.Areas.Identity.Pages.Account
         {
             if (ModelState.IsValid)
             {
-                var user = await _userManager.FindByEmailAsync(Input.Email);
-                if (user == null || !(await _userManager.IsEmailConfirmedAsync(user)))
+                var user = await _userManager.FindByEmailAsync(Input.Email).ConfigureAwait(false);
+                if (user == null || !(await _userManager.IsEmailConfirmedAsync(user).ConfigureAwait(false)))
                 {
                     // Don't reveal that the user does not exist or is not confirmed
                     return RedirectToPage("./ForgotPasswordConfirmation");
@@ -62,7 +62,7 @@ namespace Opc.Ua.Cloud.Library.Areas.Identity.Pages.Account
 
                 // For more information on how to enable account confirmation and password reset please
                 // visit https://go.microsoft.com/fwlink/?LinkID=532713
-                var code = await _userManager.GeneratePasswordResetTokenAsync(user);
+                var code = await _userManager.GeneratePasswordResetTokenAsync(user).ConfigureAwait(false);
                 code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
                 var callbackUrl = Url.Page(
                     "/Account/ResetPassword",
@@ -80,7 +80,7 @@ namespace Opc.Ua.Cloud.Library.Areas.Identity.Pages.Account
                 sbBody.AppendLine("<p>Sincerely,<br />CESMII DevOps Team</p>");
 
                 await _emailSender.SendEmailAsync(Input.Email, "CESMII | Cloud Library | Reset Password",
-                    sbBody.ToString());
+                    sbBody.ToString()).ConfigureAwait(false);
 
                 return RedirectToPage("./ForgotPasswordConfirmation");
             }

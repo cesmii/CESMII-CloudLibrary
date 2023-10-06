@@ -37,6 +37,7 @@ using CESMII.OpcUa.NodeSetModel.Factory.Opc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Opc.Ua.Cloud.Library.Controllers;
 using Opc.Ua.Cloud.Library.Interfaces;
 using Opc.Ua.Export;
 
@@ -152,7 +153,7 @@ namespace Opc.Ua.Cloud.Library
         public async Task<CloudLibNodeSetModel> CreateNodeSetModelFromNodeSetAsync(UANodeSet nodeSet, string identifier, string userId)
         {
             var nodeSetModel = await CreateNodeSetModelFromNodeSetAsync(_dbContext, nodeSet, identifier, userId).ConfigureAwait(false);
-            await _dbContext.AddAsync(nodeSetModel);
+            await _dbContext.AddAsync(nodeSetModel).ConfigureAwait(false);
             await _dbContext.SaveChangesAsync().ConfigureAwait(false);
             return nodeSetModel;
         }
@@ -266,7 +267,7 @@ namespace Opc.Ua.Cloud.Library
             var nodeSetIndexer = factory.Create();
             try
             {
-                await nodeSetIndexer.IndexMissingNodeSets();
+                await nodeSetIndexer.IndexMissingNodeSets().ConfigureAwait(false);
 
                 var unvalidatedNodeSets = await nodeSetIndexer._dbContext.nodeSetsWithUnapproved.Where(n => n.ValidationStatus != ValidationStatus.Indexed)
                     .ToListAsync().ConfigureAwait(false);
@@ -377,7 +378,7 @@ namespace Opc.Ua.Cloud.Library
                             _logger.LogDebug($"Parsing missing nodeset {missingNodeSetId}");
                             var uaNodeSet = InfoModelController.ReadUANodeSet(nodeSetXml);
 
-                            var existingNodeSet = await _dbContext.nodeSets.FirstOrDefaultAsync(n => n.ModelUri == uaNodeSet.Models[0].ModelUri && n.PublicationDate == uaNodeSet.Models[0].PublicationDate);
+                            var existingNodeSet = await _dbContext.nodeSets.FirstOrDefaultAsync(n => n.ModelUri == uaNodeSet.Models[0].ModelUri && n.PublicationDate == uaNodeSet.Models[0].PublicationDate).ConfigureAwait(false);
                             if (existingNodeSet != null)
                             {
                                 _logger.LogWarning($"Metadata vs. NodeSets inconsistency for {existingNodeSet}: Metadata NodeSetId {missingNodeSetId} vs. NodeSet {existingNodeSet.Identifier}");

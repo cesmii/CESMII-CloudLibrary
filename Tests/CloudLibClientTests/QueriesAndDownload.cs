@@ -205,6 +205,7 @@ namespace CloudLibClient.Tests
         const string strTestNamespaceTitle = "CloudLib Test Nodeset 001";
         const string strTestNamespaceFilename = "cloudlibtests.testnodeset001.NodeSet2.xml.0.json";
         const string strTestNamespaceUpdateFilename = "cloudlibtests.testnodeset001.V1_2.NodeSet2.xml.0.json";
+        const string strTestDependingNamespaceFilename = "cloudlibtests.dependingtestnodeset001.V1_2.NodeSet2.xml.0.json";
         private static UANameSpace GetUploadedTestNamespace()
         {
             var uploadedJson = File.ReadAllText(Path.Combine("TestNamespaces", strTestNamespaceFilename));
@@ -261,7 +262,7 @@ namespace CloudLibClient.Tests
             int? totalCount = null;
             do
             {
-                var result = await client.GetNodeSetsAsync(after: cursor, first: limit, noRequiredModels: noRequiredModels, noMetadata: noMetadata, noTotalCount: noTotalCount, noCreationTime: noCreationTime);
+                var result = await client.GetNodeSetsAsync(after: cursor, first: limit, noRequiredModels: noRequiredModels, noMetadata: noMetadata, noTotalCount: noTotalCount, noCreationTime: noCreationTime).ConfigureAwait(false);
                 Assert.True(cursor == null || result.Edges?.Count > 0, "Failed to get node set information.");
 
                 testNodeSet = result.Edges.FirstOrDefault(n => n.Node.NamespaceUri.OriginalString == strTestNamespaceUri)?.Node;
@@ -402,20 +403,22 @@ namespace CloudLibClient.Tests
         [InlineData("TestNamespaces", strTestNamespaceFilename, true)]
         [InlineData("TestNamespaces", "opcfoundation.org.UA.DI.NodeSet2.xml.2844662655.json", true)]
         [InlineData("TestNamespaces", "opcfoundation.org.UA.2022-11-01.NodeSet2.xml.3338611482.json", true)]
-        public async Task UpdateNodeSet(string path, string fileName, bool uploadConflictExpected = false)
+        [InlineData("OtherTestNamespaces", strTestDependingNamespaceFilename, false, strTestNamespaceUpdateFilename)] // Depends on test namespace 1.02
+        public async Task UpdateNodeSet(string path, string fileName, bool uploadConflictExpected = false, string dependentNodeSet = null)
         {
             var client = _factory.CreateCloudLibClient();
 
             var expectedNodeSetCount = (await client.GetNodeSetsAsync().ConfigureAwait(false)).TotalCount;
 
+            string uploadedIdentifier = null;
             var uploadJson = File.ReadAllText(Path.Combine(path, fileName));
             var addressSpace = JsonConvert.DeserializeObject<UANameSpace>(uploadJson);
             var response = await client.UploadNodeSetAsync(addressSpace).ConfigureAwait(false);
             if (response.Status == HttpStatusCode.OK)
             {
                 output.WriteLine($"Uploaded {addressSpace?.Nodeset.NamespaceUri}, {addressSpace?.Nodeset.Identifier}");
-                var uploadedIdentifier = response.Message;
-                var approvalResult = await client.UpdateApprovalStatusAsync(uploadedIdentifier, "APPROVED", null, null);
+                uploadedIdentifier = response.Message;
+                var approvalResult = await client.UpdateApprovalStatusAsync(uploadedIdentifier, "APPROVED", null, null).ConfigureAwait(false);
                 Assert.NotNull(approvalResult);
                 Assert.Equal("APPROVED", approvalResult.ApprovalStatus);
             }
@@ -433,6 +436,7 @@ namespace CloudLibClient.Tests
                 else
                 {
                     Assert.Equal(HttpStatusCode.OK, response.Status);
+                    uploadedIdentifier = response.Message;
                 }
             }
             // Upload again should cause conflict
@@ -443,23 +447,58 @@ namespace CloudLibClient.Tests
             // Wait for indexing
 
             bool notIndexed;
+            bool dependencyUploaded = false;
+            string requiredIdentifier = null;
             do
             {
                 nodeSetInfo = await client.GetNodeSetsAsync(modelUri: addressSpace.Nodeset.NamespaceUri.OriginalString, publicationDate: addressSpace.Nodeset.PublicationDate).ConfigureAwait(false);
-                notIndexed = nodeSetInfo.TotalCount == 1 && nodeSetInfo.Edges[0].Node.ValidationStatus != "INDEXED";
-                if (notIndexed)
+                Assert.NotEmpty(nodeSetInfo.Nodes);
+                var uploadedNode = nodeSetInfo.Nodes.Where(n => n.NamespaceUri.OriginalString == addressSpace.Nodeset.NamespaceUri.OriginalString && n.PublicationDate == addressSpace.Nodeset.PublicationDate).FirstOrDefault();
+                Assert.Contains(uploadedNode, nodeSetInfo.Nodes);
+                if (dependentNodeSet != null && !dependencyUploaded)
                 {
-                    await Task.Delay(5000);
+                    if (uploadedNode.ValidationStatus == "PARSED")
+                    {
+                        await Task.Delay(5000);
+                        notIndexed = true;
+                    }
+                    else
+                    {
+                        // Verify that the dependency is missing
+                        Assert.Equal("ERROR", uploadedNode.ValidationStatus);
+
+                        var requiredUploadJson = File.ReadAllText(Path.Combine(path, dependentNodeSet));
+                        var requiredAddressSpace = JsonConvert.DeserializeObject<UANameSpace>(requiredUploadJson);
+                        response = await client.UploadNodeSetAsync(requiredAddressSpace).ConfigureAwait(false);
+                        Assert.Equal(HttpStatusCode.OK, response.Status);
+                        requiredIdentifier = response.Message;
+
+                        var approvalResult = await client.UpdateApprovalStatusAsync(requiredIdentifier, "APPROVED", null, null);
+                        Assert.NotNull(approvalResult);
+                        Assert.Equal("APPROVED", approvalResult.ApprovalStatus);
+
+                        dependencyUploaded = true;
+                        notIndexed = true;
+                    }
+                }
+                else
+                {
+                    //Assert.NotEqual("ERROR", uploadedNode.ValidationStatus);
+                    notIndexed = uploadedNode.ValidationStatus != "INDEXED";
+                    if (notIndexed)
+                    {
+                        await Task.Delay(5000);
+                    }
                 }
             } while (notIndexed);
-            await UploadAndIndex.WaitForIndexAsync(_factory.CreateAuthorizedClient(), expectedNodeSetCount);
+            await UploadAndIndex.WaitForIndexAsync(_factory.CreateAuthorizedClient(), expectedNodeSetCount).ConfigureAwait(false);
 
             // Upload with override
             response = await client.UploadNodeSetAsync(addressSpace, true).ConfigureAwait(false);
             Assert.Equal(HttpStatusCode.OK, response.Status);
             {
-                var uploadedIdentifier = response.Message;
-                var approvalResult = await client.UpdateApprovalStatusAsync(uploadedIdentifier, "APPROVED", null, null);
+                uploadedIdentifier = response.Message;
+                var approvalResult = await client.UpdateApprovalStatusAsync(uploadedIdentifier, "APPROVED", null, null).ConfigureAwait(false);
                 Assert.NotNull(approvalResult);
                 Assert.Equal("APPROVED", approvalResult.ApprovalStatus);
             }
@@ -474,6 +513,24 @@ namespace CloudLibClient.Tests
                 }
             } while (notIndexed);
             await UploadAndIndex.WaitForIndexAsync(_factory.CreateAuthorizedClient(), expectedNodeSetCount);
+            if (!uploadConflictExpected && uploadedIdentifier != null)
+            {
+                var cancelResult = await client.UpdateApprovalStatusAsync(uploadedIdentifier, "CANCELED", "Test cleanup", null);
+                Assert.NotNull(cancelResult);
+                Assert.Equal("CANCELED", cancelResult.ApprovalStatus);
+            }
+            if (requiredIdentifier != null)
+            {
+                var cancelResult = await client.UpdateApprovalStatusAsync(requiredIdentifier, "CANCELED", "Test cleanup", null);
+                Assert.NotNull(cancelResult);
+                Assert.Equal("CANCELED", cancelResult.ApprovalStatus);
+            }
+
+            //Trigger reindexing
+            addressSpace.Nodeset.NodesetXml = null;
+            await client.UploadNodeSetAsync(addressSpace, false);
+
+            await UploadAndIndex.WaitForIndexAsync(_factory.CreateAuthorizedClient(), expectedNodeSetCount).ConfigureAwait(false);
         }
     }
 }
