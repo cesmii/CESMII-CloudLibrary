@@ -153,9 +153,10 @@ namespace Opc.Ua.Cloud.Library.Authentication
             return newApiKey;
         }
 
-        public async Task<List<string>> GetUserApiKeysAsync(IdentityUser user)
+        public async Task<List<(string KeyName, string KeyPrefix)>> GetUserApiKeysAsync(IdentityUser user)
         {
-            return await _appDbContext.UserTokens.Where(t => t.UserId == user.Id && t.LoginProvider == ApiKeyTokenProvider.ApiKeyProviderName).Select(t => t.Name).ToListAsync().ConfigureAwait(false);
+            var tokens = await _appDbContext.UserTokens.Where(t => t.UserId == user.Id && t.LoginProvider == ApiKeyTokenProvider.ApiKeyProviderName).ToListAsync().ConfigureAwait(false);
+            return tokens.Select(t => (t.Name, t.Value.Substring(0, 4))).ToList();
         }
     }
 

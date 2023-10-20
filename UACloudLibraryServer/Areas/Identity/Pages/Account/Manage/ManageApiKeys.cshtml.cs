@@ -41,7 +41,7 @@ namespace Opc.Ua.Cloud.Library.Areas.Identity.Pages.Account.Manage
         /// </summary>
         [TempData]
         public string StatusMessage { get; set; }
-        public List<string> ApiKeyNames { get; private set; }
+        public List<(string KeyName, string KeyPrefix)> ApiKeyNames { get; private set; }
 
         [TempData]
         public string GeneratedApiKeyName { get; set; }

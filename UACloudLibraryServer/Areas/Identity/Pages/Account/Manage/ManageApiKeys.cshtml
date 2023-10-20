@@ -68,7 +68,8 @@
                     @foreach (var apiKey in Model.ApiKeyNames)
                     {
                         <tr>
-                            <td>@apiKey</td>
+                            <td>@apiKey.KeyName</td>
+                            <td>@apiKey.KeyPrefix...</td>
                             <td>
                                 <form asp-page-handler="DeleteApiKey" method="post" id="@($"remove-login-{apiKey}")">
                                     <div>

@@ -38,7 +38,6 @@ namespace Opc.Ua.Cloud.Library.Controllers
     using Microsoft.Extensions.Logging;
     using Swashbuckle.AspNetCore.Annotations;
 
-
     [Authorize(AuthenticationSchemes = UserService.APIAuthorizationSchemes)]
     [ApiController]
     public class AccessController : ControllerBase
