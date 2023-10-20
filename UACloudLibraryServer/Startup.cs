@@ -186,6 +186,13 @@ namespace Opc.Ua.Cloud.Library
                         )
                     ;
             }
+            else
+            {
+                // Need to register a Bearer scheme or the authorization attributes cause errors
+                services.AddAuthentication()
+                    .AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>("Bearer", null);
+
+            }
 #if DEBUG
             IdentityModelEventSource.ShowPII = true;
 #endif
