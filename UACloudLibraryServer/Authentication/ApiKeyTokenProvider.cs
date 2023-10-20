@@ -108,7 +108,7 @@ namespace Opc.Ua.Cloud.Library.Authentication
             {
                 var user = await manager.FindByIdAsync(candidateToken.UserId).ConfigureAwait(false);
                 var result = manager.PasswordHasher.VerifyHashedPassword(user, candidateToken.Value.Substring(4), apiKey);
-                if (result == PasswordVerificationResult.Success ||  result == PasswordVerificationResult.SuccessRehashNeeded)
+                if (result == PasswordVerificationResult.Success || result == PasswordVerificationResult.SuccessRehashNeeded)
                 {
                     var newUserAndKeyName = (user.Id, candidateToken.Name);
 
