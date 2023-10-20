@@ -57,7 +57,7 @@
             <button type="submit" class="w-100 btn btn-lg btn-primary">Generate API Key</button>
         </form>
     </div>
-    @if (Model.ApiKeyNames?.Any() == true)
+    @if (Model.ApiKeysAndNames?.Any() == true)
     {
         <div class="col-md-6">
             <h2>
@@ -65,16 +65,16 @@
             </h2>
             <table class="table">
                 <tbody>
-                    @foreach (var apiKey in Model.ApiKeyNames)
+                    @foreach (var apiKeyAndName in Model.ApiKeysAndNames)
                     {
                         <tr>
-                            <td>@apiKey.KeyName</td>
-                            <td>@apiKey.KeyPrefix...</td>
+                            <td>@apiKeyAndName.KeyName</td>
+                            <td>@apiKeyAndName.KeyPrefix...</td>
                             <td>
-                                <form asp-page-handler="DeleteApiKey" method="post" id="@($"remove-login-{apiKey}")">
+                                <form asp-page-handler="DeleteApiKey" method="post" id="@($"remove-login-{apiKeyAndName.KeyName}")">
                                     <div>
-                                        <input asp-for="@apiKey" name="ApiKeyToDelete" type="hidden" />
-                                        <button type="submit" class="btn btn-primary" title="Remove API key @apiKey">Delete</button>
+                                        <input asp-for="@apiKeyAndName.KeyName" name="ApiKeyToDelete" type="hidden" />
+                                        <button type="submit" class="btn btn-primary" title="Remove API key @apiKeyAndName.KeyName">Delete</button>
                                     </div>
                                 </form>
                             </td>

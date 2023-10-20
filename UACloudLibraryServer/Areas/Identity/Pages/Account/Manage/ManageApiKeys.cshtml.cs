@@ -41,7 +41,7 @@ namespace Opc.Ua.Cloud.Library.Areas.Identity.Pages.Account.Manage
         /// </summary>
         [TempData]
         public string StatusMessage { get; set; }
-        public List<(string KeyName, string KeyPrefix)> ApiKeyNames { get; private set; }
+        public List<(string KeyName, string KeyPrefix)> ApiKeysAndNames { get; private set; }
 
         [TempData]
         public string GeneratedApiKeyName { get; set; }
@@ -72,7 +72,7 @@ namespace Opc.Ua.Cloud.Library.Areas.Identity.Pages.Account.Manage
                 return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
             }
 
-            ApiKeyNames = await _apiKeyTokenProvider.GetUserApiKeysAsync(user).ConfigureAwait(false);
+            ApiKeysAndNames = await _apiKeyTokenProvider.GetUserApiKeysAsync(user).ConfigureAwait(false);
             return Page();
         }
 
@@ -120,7 +120,7 @@ namespace Opc.Ua.Cloud.Library.Areas.Identity.Pages.Account.Manage
                     if (string.IsNullOrEmpty(newApiKey))
                     {
                         ModelState.AddModelError(string.Empty, "A key with this name already exists.");
-                        ApiKeyNames = await _apiKeyTokenProvider.GetUserApiKeysAsync(user).ConfigureAwait(false);
+                        ApiKeysAndNames = await _apiKeyTokenProvider.GetUserApiKeysAsync(user).ConfigureAwait(false);
                         return Page();
                     }
                     GeneratedApiKeyName = newApiKeyName;
