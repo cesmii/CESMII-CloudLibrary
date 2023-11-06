@@ -10,6 +10,7 @@ using System.Text;
 using System.Text.Encodings.Web;
 using System.Threading;
 using System.Threading.Tasks;
+using Castle.Core.Configuration;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
@@ -17,6 +18,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 
 namespace Opc.Ua.Cloud.Library.Areas.Identity.Pages.Account
 {
@@ -28,13 +30,15 @@ namespace Opc.Ua.Cloud.Library.Areas.Identity.Pages.Account
         private readonly IUserEmailStore<IdentityUser> _emailStore;
         private readonly ILogger<RegisterModel> _logger;
         private readonly IEmailSender _emailSender;
+        public bool AllowSelfRegistration { get; set; }
 
         public RegisterModel(
             UserManager<IdentityUser> userManager,
             IUserStore<IdentityUser> userStore,
             SignInManager<IdentityUser> signInManager,
             ILogger<RegisterModel> logger,
-            IEmailSender emailSender)
+            IEmailSender emailSender,
+            Microsoft.Extensions.Configuration.IConfiguration configuration)
         {
             _userManager = userManager;
             _userStore = userStore;
@@ -42,6 +46,7 @@ namespace Opc.Ua.Cloud.Library.Areas.Identity.Pages.Account
             _signInManager = signInManager;
             _logger = logger;
             _emailSender = emailSender;
+            AllowSelfRegistration = configuration.GetValue<bool>(nameof(AllowSelfRegistration)) == true;
         }
 
         /// <summary>
