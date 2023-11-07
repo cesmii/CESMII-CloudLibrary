@@ -16,8 +16,8 @@ using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace Opc.Ua.Cloud.Library.Areas.Identity.Pages.Account
 {
@@ -32,6 +32,8 @@ namespace Opc.Ua.Cloud.Library.Areas.Identity.Pages.Account
         private readonly IConfiguration _configuration;
         private readonly Interfaces.ICaptchaValidation _captchaValidation;
         private readonly CaptchaSettings _captchaSettings;
+
+        public bool AllowSelfRegistration { get; set; }
 
         public RegisterModel(
             UserManager<IdentityUser> userManager,
@@ -53,6 +55,8 @@ namespace Opc.Ua.Cloud.Library.Areas.Identity.Pages.Account
 
             _captchaSettings = new CaptchaSettings();
             configuration.GetSection("CaptchaSettings").Bind(_captchaSettings);
+
+            AllowSelfRegistration = configuration.GetValue<bool>(nameof(AllowSelfRegistration)) == true;
         }
 
         /// <summary>
@@ -123,19 +127,16 @@ namespace Opc.Ua.Cloud.Library.Areas.Identity.Pages.Account
 
         public async Task OnGetAsync(string returnUrl = null)
         {
-            //turn off register if not enabled
-            var enabled = _configuration.GetSection("CloudLibrary")?.GetValue<bool>("EnableRegister") ?? false;
-            if (!enabled)
-            {
-                Redirect("/");
-            }
-
             ReturnUrl = returnUrl;
             ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync().ConfigureAwait(false)).ToList();
         }
 
         public async Task<IActionResult> OnPostAsync(string returnUrl = null)
         {
+            if (!AllowSelfRegistration)
+            {
+                return Page();
+            }
             returnUrl ??= Url.Content("~/");
             ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync().ConfigureAwait(false)).ToList();
 
