@@ -46,7 +46,7 @@ namespace Opc.Ua.Cloud.Library
         public string SecretKey { get; set; }
         public string SiteKey { get; set; }
         public float BotThreshold { get; set; }
-        public bool Enabled { get; set; } = true;
+        public bool Enabled { get; set; } = false;
     }
 
     /// <summary>

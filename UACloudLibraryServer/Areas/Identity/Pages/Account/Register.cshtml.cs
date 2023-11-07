@@ -33,7 +33,7 @@ namespace Opc.Ua.Cloud.Library.Areas.Identity.Pages.Account
         private readonly Interfaces.ICaptchaValidation _captchaValidation;
         private readonly CaptchaSettings _captchaSettings;
 
-        public bool AllowSelfRegistration { get; set; }
+        public bool AllowSelfRegistration { get; set; } = true;
 
         public RegisterModel(
             UserManager<IdentityUser> userManager,
