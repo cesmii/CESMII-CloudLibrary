@@ -2,6 +2,7 @@
 @model RegisterModel
 @{
     ViewData["Title"] = "Register";
+    var _reCaptchaUrl = $"{@Model.CaptchaSettings.ClientApiUrl}{@Model.CaptchaSettings.SiteKey}";
 }
 
 <h1>@ViewData["Title"]</h1>
@@ -12,6 +13,7 @@
             <h2>Create a new account.</h2>
             <hr />
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <span asp-validation-for="CaptchaResponseToken" class="text-danger"></span>
             <div class="form-floating">
                 <input asp-for="Input.Email" class="form-control" autocomplete="username" aria-required="true" />
                 <label asp-for="Input.Email"></label>
@@ -27,6 +29,7 @@
                 <label asp-for="Input.ConfirmPassword"></label>
                 <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
             </div>
+            <input type="hidden" asp-for="CaptchaResponseToken" id="CaptchaResponseToken" />
             <button id="registerSubmit" type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
         </form>
     </div>
@@ -64,4 +67,13 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
+    <script src='@_reCaptchaUrl' ></script>
+    <script>
+        grecaptcha.ready(function () {
+            grecaptcha.execute('@Model.CaptchaSettings.SiteKey', { action: 'register' }).then(function (token) {
+                document.getElementById("CaptchaResponseToken").value = token;
+            });
+        });
+    </script>
 }
