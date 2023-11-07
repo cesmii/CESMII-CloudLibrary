@@ -56,7 +56,7 @@ namespace Opc.Ua.Cloud.Library.Areas.Identity.Pages.Account
             _captchaSettings = new CaptchaSettings();
             configuration.GetSection("CaptchaSettings").Bind(_captchaSettings);
 
-            AllowSelfRegistration = configuration.GetValue<bool>(nameof(AllowSelfRegistration)) == true;
+            AllowSelfRegistration = configuration.GetValue<bool>(nameof(AllowSelfRegistration)) != false;
         }
 
         /// <summary>
