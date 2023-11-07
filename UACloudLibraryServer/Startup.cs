@@ -62,6 +62,7 @@ namespace Opc.Ua.Cloud.Library
     using Microsoft.OpenApi.Models;
     using Opc.Ua.Cloud.Library.Interfaces;
     using Microsoft.AspNetCore.Authorization;
+    using Opc.Ua.Cloud.Library.Authentication;
 
     public class Startup
     {
@@ -90,11 +91,17 @@ namespace Opc.Ua.Cloud.Library
                       options.SignIn.RequireConfirmedAccount = !string.IsNullOrEmpty(Configuration["EmailSenderAPIKey"])
                     )
                 .AddRoles<IdentityRole>()
-                .AddEntityFrameworkStores<AppDbContext>();
+#if APIKEY_AUTH
+                .AddTokenProvider<ApiKeyTokenProvider>(ApiKeyTokenProvider.ApiKeyProviderName)
+#endif
+                .AddEntityFrameworkStores<AppDbContext>()
+                ;
 
             services.AddScoped<IUserService, UserService>();
 
             services.AddTransient<IDatabase, CloudLibDataProvider>();
+
+            services.AddScoped<ICaptchaValidation, CaptchaValidation>();
 
             if (!string.IsNullOrEmpty(Configuration["UseSendGridEmailSender"]))
             {
@@ -109,7 +116,16 @@ namespace Opc.Ua.Cloud.Library
 
             services.AddAuthentication()
                 .AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>("BasicAuthentication", null)
-                ;
+                .AddScheme<AuthenticationSchemeOptions, SignedInUserAuthenticationHandler>("SignedInUserAuthentication", null)
+#if APIKEY_AUTH
+                .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>("ApiKeyAuthentication", null);
+#endif
+            ;
+
+            //for captcha validation call
+            //add httpclient service for dependency injection
+            //https://docs.microsoft.com/en-us/aspnet/core/fundamentals/http-requests?view=aspnetcore-6.0
+            services.AddHttpClient();
 
             if (Configuration["OAuth2ClientId"] != null)
             {
@@ -160,12 +176,29 @@ namespace Opc.Ua.Cloud.Library
 #if AZURE_AD
             if (Configuration.GetSection("AzureAd")?["ClientId"] != null)
             {
+                // Web UI access
                 services.AddAuthentication()
                     .AddMicrosoftIdentityWebApp(Configuration,
                         configSectionName: "AzureAd",
                         openIdConnectScheme: "AzureAd",
                         displayName: Configuration["AADDisplayName"] ?? "Microsoft Account")
                     ;
+                // Allow access to API via Bearer tokens (for service identities etc.)
+                services.AddAuthentication()
+                    .AddMicrosoftIdentityWebApi(
+                        Configuration,
+                        configSectionName: "AzureAd",
+                        jwtBearerScheme: "Bearer",
+                        subscribeToJwtBearerMiddlewareDiagnosticsEvents: true
+                        )
+                    ;
+            }
+            else
+            {
+                // Need to register a Bearer scheme or the authorization attributes cause errors
+                services.AddAuthentication()
+                    .AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>("Bearer", null);
+
             }
 #if DEBUG
             IdentityModelEventSource.ShowPII = true;
@@ -210,6 +243,30 @@ namespace Opc.Ua.Cloud.Library
                             Array.Empty<string>()
                     }
                 });
+
+#if APIKEY_AUTH
+                options.AddSecurityDefinition("ApiKeyAuth", new OpenApiSecurityScheme {
+                    Type = SecuritySchemeType.ApiKey,
+                    In = ParameterLocation.Header,
+                    Name = "X-API-Key",
+                    //Scheme = "basic"
+                });
+
+                options.AddSecurityRequirement(new OpenApiSecurityRequirement
+            {
+                    {
+                          new OpenApiSecurityScheme
+                            {
+                                Reference = new OpenApiReference
+                                {
+                                    Type = ReferenceType.SecurityScheme,
+                                    Id = "ApiKeyAuth"
+                                }
+                            },
+                            Array.Empty<string>()
+                    }
+                });
+#endif
 
                 options.CustomSchemaIds(type => type.ToString());
 
@@ -350,7 +407,7 @@ namespace Opc.Ua.Cloud.Library
                 endpoints.MapRazorPages();
                 endpoints.MapBlazorHub();
                 endpoints.MapGraphQL()
-                    .RequireAuthorization(new AuthorizeAttribute() { AuthenticationSchemes = "BasicAuthentication" })
+                    .RequireAuthorization(new AuthorizeAttribute() { AuthenticationSchemes = UserService.APIAuthorizationSchemes })
                     .WithOptions(new GraphQLServerOptions {
                         EnableGetRequests = true,
                         Tool = { Enable = false },

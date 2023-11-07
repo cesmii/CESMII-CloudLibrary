@@ -10,7 +10,6 @@ using System.Text;
 using System.Text.Encodings.Web;
 using System.Threading;
 using System.Threading.Tasks;
-using Castle.Core.Configuration;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
@@ -30,7 +29,11 @@ namespace Opc.Ua.Cloud.Library.Areas.Identity.Pages.Account
         private readonly IUserEmailStore<IdentityUser> _emailStore;
         private readonly ILogger<RegisterModel> _logger;
         private readonly IEmailSender _emailSender;
-        public bool AllowSelfRegistration { get; set; }
+        private readonly IConfiguration _configuration;
+        private readonly Interfaces.ICaptchaValidation _captchaValidation;
+        private readonly CaptchaSettings _captchaSettings;
+
+        public bool AllowSelfRegistration { get; set; } = true;
 
         public RegisterModel(
             UserManager<IdentityUser> userManager,
@@ -38,7 +41,8 @@ namespace Opc.Ua.Cloud.Library.Areas.Identity.Pages.Account
             SignInManager<IdentityUser> signInManager,
             ILogger<RegisterModel> logger,
             IEmailSender emailSender,
-            Microsoft.Extensions.Configuration.IConfiguration configuration)
+            IConfiguration configuration,
+            Interfaces.ICaptchaValidation captchaValidation)
         {
             _userManager = userManager;
             _userStore = userStore;
@@ -46,7 +50,13 @@ namespace Opc.Ua.Cloud.Library.Areas.Identity.Pages.Account
             _signInManager = signInManager;
             _logger = logger;
             _emailSender = emailSender;
-            AllowSelfRegistration = configuration.GetValue<bool>(nameof(AllowSelfRegistration)) == true;
+            _configuration = configuration;
+            _captchaValidation = captchaValidation;
+
+            _captchaSettings = new CaptchaSettings();
+            configuration.GetSection("CaptchaSettings").Bind(_captchaSettings);
+
+            AllowSelfRegistration = configuration.GetValue<bool?>(nameof(AllowSelfRegistration)) != false;
         }
 
         /// <summary>
@@ -67,6 +77,17 @@ namespace Opc.Ua.Cloud.Library.Areas.Identity.Pages.Account
         ///     directly from your code. This API may change or be removed in future releases.
         /// </summary>
         public IList<AuthenticationScheme> ExternalLogins { get; set; }
+
+        /// <summary>
+        /// Populate values for cshtml to use
+        /// </summary>
+        public CaptchaSettings CaptchaSettings { get { return _captchaSettings; } }
+
+        /// <summary>
+        /// Populate a token returned from client side call to Google Captcha
+        /// </summary>
+        [BindProperty]
+        public string CaptchaResponseToken { get; set; }
 
         /// <summary>
         ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
@@ -118,6 +139,11 @@ namespace Opc.Ua.Cloud.Library.Areas.Identity.Pages.Account
             }
             returnUrl ??= Url.Content("~/");
             ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync().ConfigureAwait(false)).ToList();
+
+            //Captcha validate
+            var captchaResult = await _captchaValidation.ValidateCaptcha(CaptchaResponseToken);
+            if (!string.IsNullOrEmpty(captchaResult)) ModelState.AddModelError("CaptchaResponseToken", captchaResult);
+
             if (ModelState.IsValid)
             {
                 var user = CreateUser();
