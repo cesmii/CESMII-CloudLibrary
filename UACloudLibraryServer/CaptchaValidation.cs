@@ -46,6 +46,7 @@ namespace Opc.Ua.Cloud.Library
         public string SecretKey { get; set; }
         public string SiteKey { get; set; }
         public float BotThreshold { get; set; }
+        public bool Enabled { get; set; } = true;
     }
 
     /// <summary>
@@ -82,6 +83,8 @@ namespace Opc.Ua.Cloud.Library
 
         public async Task<string> ValidateCaptcha(string responseToken)
         {
+            if (!_captchaSettings.Enabled) return null;
+
             bool configError = false;
             //check for valid values
             if (_captchaSettings == null) _logger.LogCritical($"ValidateCaptcha|Captcha settings are missing or invalid");

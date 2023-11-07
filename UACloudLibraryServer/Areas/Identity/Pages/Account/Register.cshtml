@@ -83,12 +83,14 @@
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
 
-    <script src='@_reCaptchaUrl' ></script>
-    <script>
-        grecaptcha.ready(function () {
-            grecaptcha.execute('@Model.CaptchaSettings.SiteKey', { action: 'register' }).then(function (token) {
-                document.getElementById("CaptchaResponseToken").value = token;
+    @if (Model.CaptchaSettings.Enabled) {
+        <script src='@_reCaptchaUrl' ></script>
+        <script>
+            grecaptcha.ready(function () {
+                grecaptcha.execute('@Model.CaptchaSettings.SiteKey', { action: 'register' }).then(function (token) {
+                    document.getElementById("CaptchaResponseToken").value = token;
+                });
             });
-        });
-    </script>
+        </script>
+    }
 }
