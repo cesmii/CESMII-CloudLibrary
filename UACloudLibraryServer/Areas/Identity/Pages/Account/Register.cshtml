@@ -32,7 +32,14 @@
 	            <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
 	        </div>
 	        <input type="hidden" asp-for="CaptchaResponseToken" id="CaptchaResponseToken" />
-	        <button id="registerSubmit" type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
+	        @if (!Model.CaptchaSettings.Enabled)
+            {
+                <button id="registerSubmit" type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
+            }
+            else
+            {
+	            <button id="registerSubmit" type="button" class="w-100 btn btn-lg btn-primary">Register</button>
+            }
 	    </form>
         </div>
     }
@@ -86,11 +93,20 @@
     @if (Model.CaptchaSettings.Enabled) {
         <script src='@_reCaptchaUrl' ></script>
         <script>
-            grecaptcha.ready(function () {
+            
+            function reCaptchaExecute() {
                 grecaptcha.execute('@Model.CaptchaSettings.SiteKey', { action: 'register' }).then(function (token) {
+                    //populate token value in hidden field
                     document.getElementById("CaptchaResponseToken").value = token;
+                    //submit form
+                    $('#registerForm').submit();
                 });
-            });
+            }
+            
+            //wire up register button to execute reCaptcha before submitting
+            const btnRegisterSubmit = document.getElementById("registerSubmit");
+            btnRegisterSubmit.addEventListener('click', reCaptchaExecute, false);
+            //Note - if run on load, the token expires after 2 mins
         </script>
     }
 }
