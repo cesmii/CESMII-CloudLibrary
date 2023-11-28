@@ -122,11 +122,10 @@ namespace Opc.Ua.Cloud.Library.Authentication
                 }
             }
             throw new ArgumentException($"Key not found");
-
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="userManager">UserManager to use to generate and set the key.</param>
         /// <param name="user">User for who to generate the key for.</param>
@@ -165,26 +164,17 @@ namespace Opc.Ua.Cloud.Library.Authentication
     {
         public IEnumerable<string> Errors { get; private set; }
 
-        public ApiKeyGenerationException()
-        {
-        }
+        public ApiKeyGenerationException() { }
 
         public ApiKeyGenerationException(string message, IEnumerable<string> enumerable) : base(message)
         {
             Errors = enumerable;
         }
 
-        public ApiKeyGenerationException(string message) : base(message)
-        {
-        }
+        public ApiKeyGenerationException(string message) : base(message) { }
 
-        public ApiKeyGenerationException(string message, Exception innerException) : base(message, innerException)
-        {
-        }
+        public ApiKeyGenerationException(string message, Exception innerException) : base(message, innerException) { }
 
-        protected ApiKeyGenerationException(SerializationInfo info, StreamingContext context) : base(info, context)
-        {
-        }
+        protected ApiKeyGenerationException(SerializationInfo info, StreamingContext context) : base(info, context) { }
     }
-
 }
