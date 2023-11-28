@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
+using Opc.Ua.Cloud.Library.Authentication;
 
 namespace Opc.Ua.Cloud.Library.Areas.Identity.Pages.Account
 {
@@ -79,8 +80,13 @@ namespace Opc.Ua.Cloud.Library.Areas.Identity.Pages.Account
                 sbBody.AppendLine("<p>The CESMII UA Cloud Library is hosted by <a href='https://www.cesmii.org/'>CESMII</a>, the Clean Energy Smart Manufacturing Institute! This Cloud Library contains curated node sets created by CESMII or its members, as well as node sets from the <a href='https://uacloudlibrary.opcfoundation.org/'>OPC Foundation Cloud Library</a>.</p>");
                 sbBody.AppendLine("<p>Sincerely,<br />CESMII DevOps Team</p>");
 
-                await _emailSender.SendEmailAsync(Input.Email, "CESMII | Cloud Library | Reset Password",
-                    sbBody.ToString()).ConfigureAwait(false);
+                await EmailManager.Send(
+                    _emailSender,
+                    Input.Email,
+                    "CESMII | Cloud Library | Reset Password",
+                    sbBody.ToString(),
+                    callbackUrl
+                ).ConfigureAwait(false);
 
                 return RedirectToPage("./ForgotPasswordConfirmation");
             }

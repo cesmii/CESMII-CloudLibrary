@@ -43,7 +43,7 @@
                         </td>
                         <td>
                             <div>
-                                @Model.GeneratedApiKey
+                            @Model.GeneratedApiKey
                                 <clipboard-copy value="@Model.GeneratedApiKey" title="Copy to clipboard" class="btn btn-sm" style="line-height: 1;vertical-align: top;padding-top: 0px;padding-bottom: 0px">
                                     <span class="copyButton">
                                         <svg height="16" width="16">
@@ -63,7 +63,7 @@
                 </tbody>
             </table>
             <div class="alert">
-                Usage: Add an HTTP Header X-Api-key with the API key as the header value.
+                Usage: Add an HTTP Header X-Api-key with the API key as the header value. 
                 Note that the key name does not need to be provided separately for authentication.
             </div>
         </div>

@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Text.Encodings.Web;
@@ -18,6 +19,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Opc.Ua.Cloud.Library.Authentication;
 
 namespace Opc.Ua.Cloud.Library.Areas.Identity.Pages.Account
 {
@@ -176,8 +178,13 @@ namespace Opc.Ua.Cloud.Library.Areas.Identity.Pages.Account
                     sbBody.AppendLine("<p>The CESMII UA Cloud Library is hosted by <a href='https://www.cesmii.org/'>CESMII</a>, the Clean Energy Smart Manufacturing Institute! This Cloud Library contains curated node sets created by CESMII or its members, as well as node sets from the <a href='https://uacloudlibrary.opcfoundation.org/'>OPC Foundation Cloud Library</a>.</p>");
                     sbBody.AppendLine("<p>Sincerely,<br />CESMII DevOps Team</p>");
 
-                    await _emailSender.SendEmailAsync(Input.Email, "CESMII | Cloud Library | New Account Confirmation",
-                        sbBody.ToString());
+                    await EmailManager.Send(
+                        _emailSender,
+                        Input.Email,
+                        "CESMII | Cloud Library | New Account Confirmation",
+                        sbBody.ToString(),
+                        callbackUrl
+                    ).ConfigureAwait(false);
 
                     //notify CESMII dev ops as well
                     StringBuilder sbBody2 = new StringBuilder();
@@ -185,7 +192,13 @@ namespace Opc.Ua.Cloud.Library.Areas.Identity.Pages.Account
                     sbBody2.AppendLine($"<p>User <b>'{Input.Email}'</b> created an account on the CESMII UA Cloud Library. ");
                     sbBody2.AppendLine("<p>The CESMII UA Cloud Library is hosted by <a href='https://www.cesmii.org/'>CESMII</a>, the Clean Energy Smart Manufacturing Institute! This Cloud Library contains curated node sets created by CESMII or its members, as well as node sets from the <a href='https://uacloudlibrary.opcfoundation.org/'>OPC Foundation Cloud Library</a>.</p>");
                     sbBody2.AppendLine("<p>Sincerely,<br />CESMII DevOps Team</p>");
-                    await _emailSender.SendEmailAsync("devops@cesmii.org", "CESMII | Cloud Library | New Account Sign Up", sbBody2.ToString()).ConfigureAwait(false);
+                    await EmailManager.Send(
+                        _emailSender,
+                        "devops@cesmii.org",
+                        "CESMII | Cloud Library | New Account Sign Up",
+                        sbBody2.ToString(),
+                        callbackUrl
+                    ).ConfigureAwait(false);
 
                     if (_userManager.Options.SignIn.RequireConfirmedAccount)
                     {
