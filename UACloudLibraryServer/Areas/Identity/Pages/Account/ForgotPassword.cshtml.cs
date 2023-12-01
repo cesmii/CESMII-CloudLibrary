@@ -72,19 +72,9 @@ namespace Opc.Ua.Cloud.Library.Areas.Identity.Pages.Account
                     protocol: Request.Scheme);
 
                 //notify user of password reset w/ reset link
-                StringBuilder sbBody = new StringBuilder();
-                sbBody.AppendLine("<h1>Reset Password</h1>");
-                sbBody.AppendLine("<p>A request has been made to reset your password in the CESMII Cloud Library.");
-                sbBody.AppendLine($"<b>Please click here to <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>reset your password</a>.</b></p>");
-                sbBody.AppendLine("<p>If you did not make this request, please contact the <a href='mailto:devops@cesmii.org'>CESMII DevOps Team</a>.</p>");
-                sbBody.AppendLine("<p>The CESMII UA Cloud Library is hosted by <a href='https://www.cesmii.org/'>CESMII</a>, the Clean Energy Smart Manufacturing Institute! This Cloud Library contains curated node sets created by CESMII or its members, as well as node sets from the <a href='https://uacloudlibrary.opcfoundation.org/'>OPC Foundation Cloud Library</a>.</p>");
-                sbBody.AppendLine("<p>Sincerely,<br />CESMII DevOps Team</p>");
-
-                await EmailManager.Send(
+                await EmailManager.SendPasswordReset(
                     _emailSender,
                     Input.Email,
-                    "CESMII | Cloud Library | Reset Password",
-                    sbBody.ToString(),
                     callbackUrl
                 ).ConfigureAwait(false);
 
