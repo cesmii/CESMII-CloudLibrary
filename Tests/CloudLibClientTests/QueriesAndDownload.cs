@@ -90,7 +90,7 @@ namespace CloudLibClient.Tests
                 Console.WriteLine($"FAIL: returned dependencies are different.");
                 Console.WriteLine($"For identifier {identifier}: {string.Join(" ", dependenciesByIdentifier)}.");
                 Console.WriteLine($"For namespace {namespaceUri} / {publicationDate}: {string.Join(" ", dependenciesByNamespace)}");
-                Assert.True(false, "Returned dependencies are different. See log for details.");
+                Assert.Fail("Returned dependencies are different. See log for details.");
             }
             else
             {

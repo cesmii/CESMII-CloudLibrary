@@ -37,7 +37,7 @@ namespace Opc.Ua.Cloud.Library
     using System.Security.Claims;
     using System.Text.Json;
     using Amazon.S3;
-    using GraphQL.Server.Ui.Playground;
+    //using GraphQL.Server.Ui.Playground;
     using HotChocolate.AspNetCore;
     using HotChocolate.Data;
     using Microsoft.AspNetCore.Authentication;
@@ -63,6 +63,7 @@ namespace Opc.Ua.Cloud.Library
     using Opc.Ua.Cloud.Library.Interfaces;
     using Microsoft.AspNetCore.Authorization;
     using Opc.Ua.Cloud.Library.Authentication;
+    using GraphQL.Server.Ui.GraphiQL;
 
     public class Startup
     {
@@ -389,13 +390,19 @@ namespace Opc.Ua.Cloud.Library
 
             app.UseAuthorization();
 
-            app.UseGraphQLPlayground(
+            //app.UseGraphQLPlayground(
+            //    "/graphqlui",
+            //    new PlaygroundOptions() {
+            //        RequestCredentials = RequestCredentials.Include
+            //    });
+            app.UseGraphQLGraphiQL(
                 "/graphqlui",
-                new PlaygroundOptions() {
+                new GraphiQLOptions (){
                     RequestCredentials = RequestCredentials.Include
                 });
+
             app.UseGraphQLGraphiQL("/graphiql", new GraphQL.Server.Ui.GraphiQL.GraphiQLOptions {
-                ExplorerExtensionEnabled = true,
+                // ExplorerExtensionEnabled = true,
                 RequestCredentials = GraphQL.Server.Ui.GraphiQL.RequestCredentials.Include,
             });
 

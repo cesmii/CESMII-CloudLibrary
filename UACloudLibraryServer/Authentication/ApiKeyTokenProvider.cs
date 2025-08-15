@@ -175,6 +175,6 @@ namespace Opc.Ua.Cloud.Library.Authentication
 
         public ApiKeyGenerationException(string message, Exception innerException) : base(message, innerException) { }
 
-        protected ApiKeyGenerationException(SerializationInfo info, StreamingContext context) : base(info, context) { }
+        //protected ApiKeyGenerationException(SerializationInfo info, StreamingContext context) : base(info, context) { }
     }
 }

@@ -33,7 +33,7 @@ namespace CloudLibClient.Tests
             _factory = factory;
             InstantiationCount++;
         }
-
+#pragma warning disable xUnit1031
         [Fact]
         public void Setup()
         {

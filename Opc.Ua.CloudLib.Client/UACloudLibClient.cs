@@ -529,7 +529,7 @@ namespace Opc.Ua.Cloud.Library.Client
                 return result;
             }
             catch (HttpRequestException ex)
-#if !NETSTANDARD2_0
+#if !NETSTANDARD2_1
             when (ex.StatusCode == HttpStatusCode.NotFound)
 #endif
             {
@@ -1131,14 +1131,14 @@ query MyQuery ($identifier: String, $modelUri: String, $publicationDate: DateTim
         public GraphQlException(string message, Exception innerException) : base(message, innerException)
         {
         }
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="info"></param>
-        /// <param name="context"></param>
-        protected GraphQlException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) : base(info, context)
-        {
-        }
+        ///// <summary>
+        ///// 
+        ///// </summary>
+        ///// <param name="info"></param>
+        ///// <param name="context"></param>
+        //protected GraphQlException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) : base(info, context)
+        //{
+        //}
     }
 
     /// <summary>
@@ -1168,13 +1168,13 @@ query MyQuery ($identifier: String, $modelUri: String, $publicationDate: DateTim
         public GraphQlNotSupportedException(string message, Exception innerException) : base(message, innerException)
         {
         }
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="info"></param>
-        /// <param name="context"></param>
-        protected GraphQlNotSupportedException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) : base(info, context)
-        {
-        }
+        ///// <summary>
+        ///// 
+        ///// </summary>
+        ///// <param name="info"></param>
+        ///// <param name="context"></param>
+        //protected GraphQlNotSupportedException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) : base(info, context)
+        //{
+        //}
     }
 }

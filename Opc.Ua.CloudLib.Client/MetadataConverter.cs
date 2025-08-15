@@ -49,7 +49,8 @@ namespace Opc.Ua.Cloud.Library.Client
                 foreach (MetadataResult item in metadata)
                 {
                     string id = item.NodesetID.ToString(CultureInfo.InvariantCulture);
-                    if (!nameSpaces.ContainsKey(id))
+                    // if (!nameSpaces.ContainsKey(id))
+                    if (!nameSpaces.TryGetValue(id, out UANameSpace nameSpace))
                     {
                         var uaNamespace = new UANameSpace();
                         uaNamespace.Nodeset.Identifier = (uint)item.NodesetID;
@@ -145,6 +146,7 @@ namespace Opc.Ua.Cloud.Library.Client
 
             return result;
         }
+        private static char[] astrComma = new char[] { ',' };
 
         /// <summary>
         /// Switch case with all the names for the members
@@ -173,10 +175,12 @@ namespace Opc.Ua.Cloud.Library.Client
                     nameSpace.PurchasingInformationUrl = new Uri(metadata.Value);
                     break;
                 case "keywords":
-                    nameSpace.Keywords = metadata.Value.Split(new char[] { ',' });
+                    // nameSpace.Keywords = metadata.Value.Split(new char[] { ',' });
+                    nameSpace.Keywords = metadata.Value.Split(astrComma);
                     break;
                 case "locales":
-                    nameSpace.SupportedLocales = metadata.Value.Split(new char[] { ',' });
+                    // nameSpace.SupportedLocales = metadata.Value.Split(new char[] { ',' });
+                    nameSpace.SupportedLocales = metadata.Value.Split(astrComma);
                     break;
                 case "numdownloads":
                     nameSpace.NumberOfDownloads = System.Convert.ToUInt32(metadata.Value, CultureInfo.InvariantCulture);

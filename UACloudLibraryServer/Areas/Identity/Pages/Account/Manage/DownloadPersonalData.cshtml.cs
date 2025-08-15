@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -59,7 +60,9 @@ namespace Opc.Ua.Cloud.Library.Areas.Identity.Pages.Account.Manage
 
             personalData.Add($"Authenticator Key", await _userManager.GetAuthenticatorKeyAsync(user).ConfigureAwait(false));
 
-            Response.Headers.Add("Content-Disposition", "attachment; filename=PersonalData.json");
+            // Use Append instead of Add to avoid ArgumentException if header already exists
+            //Response.Headers.Add("Content-Disposition", "attachment; filename=PersonalData.json");
+            Response.Headers.Append("Content-Disposition", "attachment; filename=PersonalData.json");
             return new FileContentResult(JsonSerializer.SerializeToUtf8Bytes(personalData), "application/json");
         }
     }

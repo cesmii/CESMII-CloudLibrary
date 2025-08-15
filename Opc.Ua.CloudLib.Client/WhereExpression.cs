@@ -106,19 +106,19 @@ namespace Opc.Ua.Cloud.Library.Client
             }
             else
             {
-                query.Append("[");
+                query.Append('[');
 
                 if (filter != null)
                 {
                     foreach (WhereExpression e in filter)
                     {
                         query.Append(e.Expression);
-                        query.Append(",");
+                        query.Append(',');
                     }
                 }
 
                 query.Remove(query.Length - 1, 1);
-                query.Append("]");
+                query.Append(']');
 
                 return query.ToString();
             }
@@ -130,7 +130,8 @@ namespace Opc.Ua.Cloud.Library.Client
         /// <param name="comparison">The comparison.</param>
         public void SetExpression(SearchField field, string value, ComparisonType comparison)
         {
-            if (!string.IsNullOrEmpty(value) && Enum.IsDefined(typeof(SearchField), field) && Enum.IsDefined(typeof(ComparisonType), comparison))
+            // if (!string.IsNullOrEmpty(value) && Enum.IsDefined(typeof(SearchField), field) && Enum.IsDefined(typeof(ComparisonType), comparison))
+            if (!string.IsNullOrEmpty(value) && Enum.IsDefined<SearchField>(field) && Enum.IsDefined<ComparisonType>(comparison))
             {
                 Expression = "{'" + field.ToString() + "': {'" + comparison.ToString() + "': '" + value + "'}}";
 

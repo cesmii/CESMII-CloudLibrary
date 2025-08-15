@@ -48,8 +48,10 @@ namespace Opc.Ua.Cloud.Library.Authentication
             IOptionsMonitor<AuthenticationSchemeOptions> options,
             ILoggerFactory logger,
             UrlEncoder encoder,
-            ISystemClock clock)
-            : base(options, logger, encoder, clock)
+            // ISystemClock clock)
+            TimeProvider clock)
+            // : base(options, logger, encoder, clock)
+            : base(options, logger, encoder)
         {
             _userService = userService;
         }
